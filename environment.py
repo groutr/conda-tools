@@ -2,17 +2,22 @@ import os
 import json
 import pprint
 from functools import lru_cache
+from os.path import join, exists, basename
 
 from cache import PackageInfo
+
+class InvalidEnvironment(Exception):
+    pass
 
 @lru_cache()
 class Environment(object):
     def __init__(self, path):
         self.path = path
-        self.name = os.path.basename(path)
-        if os.path.exists(path):
-            self._meta = os.path.join(path, 'conda-meta')
+        self._meta = join(path, 'conda-meta')
+        if exists(path) and exists(self._meta):
             self._packages = load_all_json(self._meta)
+        else:
+            raise InvalidEnvironment('Unable to load environment {}'.format(path))
 
             # Load PackageInfo objects
             self.package_info = {}
@@ -20,6 +25,7 @@ class Environment(object):
                 name = i['name']
                 link_source = i.get('link').get('source')
                 self.package_info[name] = PackageInfo(link_source)
+        self.name = basename(path)
 
     def packages(self):
         """
@@ -66,12 +72,25 @@ def load_all_json(path):
     return result
 
 
+def environments(path, verbose=False):
+    root, dirs, files = next(os.walk(path, topdown=True))
+    envs = []
+    for d in dirs:
+        try:
+            envs.append(Environment(join(root, d)))
+        except InvalidEnvironment:
+            if verbose:
+                print("Ignoring {}".format(join(root, d)))
+            continue
+
+    return tuple(envs)
+
+
 def named_environments(path):
     """
     Returns a dictionary of all environments keyed by environment name
     :param path: path to environments directory
     :return: dict
     """
-    root, dirs, files = next(os.walk(path, topdown=True))
-    return {d: Environment(os.path.join(root, d)) for d in dirs}
+    return {e.name: e for e in environments(path)}
 
