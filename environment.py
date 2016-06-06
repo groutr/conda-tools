@@ -19,12 +19,15 @@ class Environment(object):
         else:
             raise InvalidEnvironment('Unable to load environment {}'.format(path))
 
-            # Load PackageInfo objects
-            self.package_info = {}
-            for i in self._packages.values():
-                name = i['name']
+        # Load PackageInfo objects
+        self.package_info = {}
+        for i in self._packages.values():
+            name = i['name']
+            try:
                 link_source = i.get('link').get('source')
-                self.package_info[name] = PackageInfo(link_source)
+            except AttributeError:
+                link_source = 'root'
+            self.package_info[name] = PackageInfo(link_source)
         self.name = basename(path)
 
     def packages(self):
@@ -74,7 +77,9 @@ def load_all_json(path):
 
 def environments(path, verbose=False):
     root, dirs, files = next(os.walk(path, topdown=True))
-    envs = []
+
+    # root environment added first
+    envs = [Environment(os.path.dirname(root))]
     for d in dirs:
         try:
             envs.append(Environment(join(root, d)))

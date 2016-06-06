@@ -13,7 +13,7 @@ class PackageInfo(object):
     def __init__(self, path):
         self.path = path
         self._info = join(path, 'info')
-        if exists(path) and exists(self._info):
+        if path == 'root' or exists(path) and exists(self._info):
             self._index = join(self._info, 'index.json')
             self._files = join(self._info, 'files')
         else:
