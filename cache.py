@@ -1,6 +1,9 @@
 import json
 import os
 from functools import lru_cache
+from os.path import join, exists
+
+from config import config
 
 class InvalidCachePackage(Exception):
     pass
@@ -9,10 +12,10 @@ class InvalidCachePackage(Exception):
 class PackageInfo(object):
     def __init__(self, path):
         self.path = path
-        self._info = os.path.join(path, 'info')
-        if os.path.exists(path) and os.path.exists(self._info):
-            self._index = os.path.join(self._info, 'index.json')
-            self._files = os.path.join(self._info, 'files')
+        self._info = join(path, 'info')
+        if exists(path) and exists(self._info):
+            self._index = join(self._info, 'index.json')
+            self._files = join(self._info, 'files')
         else:
             raise InvalidCachePackage("{} does not exist".format(self._info))
 
@@ -55,7 +58,7 @@ class PackageInfo(object):
 
 
 def load_cache(path, verbose=False):
-    if not os.path.exists(path):
+    if not exists(path):
         raise IOError('{} cache does not exist!'.format(path))
 
     result = []
@@ -63,10 +66,11 @@ def load_cache(path, verbose=False):
     root, dirs, files = next(cache)
     for d in dirs:
         try:
-            result.append(PackageInfo(os.path.join(root, d)))
+            result.append(PackageInfo(join(root, d)))
         except InvalidCachePackage:
             if verbose:
                 print("Skipping {}".format(d))
+            continue
     return tuple(result)
 
 
@@ -76,5 +80,5 @@ def named_cache(path):
     :param path: path to pkg cache
     :return: dict
     """
-    return {(i.index()['name'], i.index()['version']): i
-            for i in load_cache(path)}
+    return {(i.name, i.version): i for i in load_cache(path)}
+
