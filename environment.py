@@ -33,6 +33,17 @@ class Environment(object):
 
         return tuple(zip(packages, versions))
 
+    def __eq__(self, other):
+        if not isinstance(Environment, other):
+            return False
+
+        if self.path == other.path:
+            return True
+        return False
+
+    def __hash__(self):
+        return hash(self.path)
+
     def __repr__(self):
         return 'Environment({})'.format(self.path)
 
@@ -53,4 +64,14 @@ def load_all_json(path):
                 x = json.load(fin)
             result[f] = x
     return result
+
+
+def named_environments(path):
+    """
+    Returns a dictionary of all environments keyed by environment name
+    :param path: path to environments directory
+    :return: dict
+    """
+    root, dirs, files = next(os.walk(path, topdown=True))
+    return {d: Environment(os.path.join(root, d)) for d in dirs}
 
