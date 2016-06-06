@@ -22,17 +22,36 @@ class PackageInfo(object):
             x = json.load(f)
         return x
 
+    @property
+    def name(self):
+        return self.index()['name']
+
+    @property
+    def version(self):
+        return self.index()['version']
+
     @lru_cache(maxsize=1)
     def files(self):
         with open(self._files, 'r') as f:
             x = map(str.strip, f.readlines())
         return set(x)
 
+    def __eq__(self, other):
+        if not isinstance(PackageInfo, other):
+            return False
+
+        if self.path == other.path:
+            return True
+        return False
+
+    def __hash__(self):
+        return hash(self.path)
+
     def __repr__(self):
         return 'PackageInfo({})'.format(self.path)
 
     def __str__(self):
-        return '{}::{}'.format(self.index()['name'], self.index()['version'])
+        return '{}::{}'.format(self.name, self.version)
 
 
 def load_cache(path, verbose=False):
