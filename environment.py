@@ -2,7 +2,7 @@ import os
 import json
 import pprint
 from functools import lru_cache
-from os.path import join, exists, basename
+from os.path import join, exists, basename, dirname
 
 from cache import PackageInfo
 
@@ -21,13 +21,9 @@ class Environment(object):
 
         # Load PackageInfo objects
         self.package_info = {}
-        for i in self._packages.values():
-            name = i['name']
-            try:
-                link_source = i.get('link').get('source')
-            except AttributeError:
-                link_source = 'root'
-            self.package_info[name] = PackageInfo(link_source)
+        for pi in self._link_type_packages(link_type='all').values():
+            for p in pi:
+                self.package_info[p.name] = p
         self.name = basename(path)
 
     def packages(self):
@@ -41,6 +37,28 @@ class Environment(object):
             versions.append(i['version'])
 
         return tuple(zip(packages, versions))
+
+    def _link_type_packages(self, link_type='all'):
+        """
+        Return all PackageInfo objects that are linked into the environment
+        :return:
+        """
+        if link_type not in {'hard-link', 'soft-link', 'copy', 'all'}:
+            raise ValueError('link_type must be hard-link, soft-link, copy, or all')
+
+        result = {'hard-link': [], 'soft-link': [], 'copy': []}
+        for i in self._packages.values():
+            link = i.get('link')
+            if link:
+                ltype, lsource = link['type'], link['source']
+            else:
+                ltype, lsource = 'hard-link', self.path
+            result[ltype].append(PackageInfo(lsource))
+
+        if link_type == 'all':
+            return {k: tuple(v) for k, v in result.items()}
+        else:
+            return tuple(result[link_type])
 
     def __eq__(self, other):
         if not isinstance(Environment, other):
@@ -79,7 +97,7 @@ def environments(path, verbose=False):
     root, dirs, files = next(os.walk(path, topdown=True))
 
     # root environment added first
-    envs = [Environment(os.path.dirname(root))]
+    envs = [Environment(dirname(root))]
     for d in dirs:
         try:
             envs.append(Environment(join(root, d)))
