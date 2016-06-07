@@ -3,7 +3,6 @@ Utility functions that map information from caches onto environments
 """
 
 import os
-from functools import partial
 
 from config import config
 from cache import PackageInfo, load_cache
@@ -12,7 +11,7 @@ from environment import environments
 
 def linked_environments(package, env_path):
     envs = environments(env_path)
-    linked_envs = (env for env in envs if package in set(env.package_info.values()))
+    linked_envs = (env for env in envs if package in set(env.linked_packages.values()))
     return tuple(linked_envs)
 
 
@@ -41,6 +40,7 @@ def unlinked_packages(cache_path, env_path):
     """
     linked = all_linked_environments(cache_path, env_path)
     return tuple(pkg for pkg, env in linked.items() if not env)
+
 
 
 
