@@ -12,7 +12,16 @@ class InvalidEnvironment(Exception):
 
 @lru_cache()
 class Environment(object):
+    """
+    Represent a conda environment and information pertaining to it.
+    """
     def __init__(self, path):
+        """
+        Initialize an Environment object.  Many of the properties of this object
+        are lazy, and are calculated on first access.
+        To reflect changes in the underlying environment, a new Environment object should be created.
+        :param path: (str) path to environment folder
+        """
         self.path = path
         self._meta = join(path, 'conda-meta')
         if exists(path) and exists(self._meta):
@@ -24,6 +33,10 @@ class Environment(object):
 
     @lazyproperty
     def linked_packages(self):
+        """
+        List all packages linked into the environment.
+        :return: (dict<str:PackageInfo>) package name: PackageInfo
+        """
         package_info = {}
         for pi in self._link_type_packages(link_type='all').values():
             for p in pi:
@@ -33,8 +46,8 @@ class Environment(object):
     @lazyproperty
     def package_channels(self):
         """
-        Returns mapping of packages to their channel sources.
-        :return: dict
+        Mapping of packages to their channel sources.
+        :return: (dict<str:str>) package name: channel url
         """
         result = {}
         for i in self._packages.values():
@@ -44,7 +57,8 @@ class Environment(object):
     @lazyproperty
     def package_specs(self):
         """
-        Return a tuple of tuples (package, package version)
+        List all package specs in the environment.
+        :return: (tuple) package names and their versions
         """
         json_objs = self._packages.values()
         packages, versions = [], []
@@ -58,7 +72,7 @@ class Environment(object):
     def _link_type_packages(self, link_type='all'):
         """
         Return all PackageInfo objects that are linked into the environment
-        :return:
+        :return: (dict<str:tuple>, tuple) PackageInfo objects organized by link type
         """
         if link_type not in {'hard-link', 'soft-link', 'copy', 'all'}:
             raise ValueError('link_type must be hard-link, soft-link, copy, or all')
@@ -111,6 +125,12 @@ def load_all_json(path):
 
 
 def environments(path, verbose=False):
+    """
+    List all known environments, including root environment.
+    :param path: (str) path to directory of environments
+    :param verbose: (bool) show verbose output
+    :return: (tuple) Environments
+    """
     root, dirs, files = next(os.walk(path, topdown=True))
 
     # root environment added first
@@ -130,7 +150,7 @@ def named_environments(path):
     """
     Returns a dictionary of all environments keyed by environment name
     :param path: path to environments directory
-    :return: dict
+    :return: (dict<str:Environment>)
     """
     return {e.name: e for e in environments(path)}
 
