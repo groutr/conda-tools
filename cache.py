@@ -3,6 +3,7 @@ import os
 from functools import lru_cache
 from os.path import join, exists
 
+from common import lazyproperty
 from config import config
 
 class InvalidCachePackage(Exception):
@@ -19,21 +20,21 @@ class PackageInfo(object):
         else:
             raise InvalidCachePackage("{} does not exist".format(self._info))
 
-    @lru_cache(maxsize=1)
+    @lazyproperty
     def index(self):
         with open(self._index, 'r') as f:
             x = json.load(f)
         return x
 
-    @property
+    @lazyproperty
     def name(self):
-        return self.index()['name']
+        return self.index['name']
 
-    @property
+    @lazyproperty
     def version(self):
-        return self.index()['version']
+        return self.index['version']
 
-    @lru_cache(maxsize=1)
+    @lazyproperty
     def files(self):
         with open(self._files, 'r') as f:
             x = map(str.strip, f.readlines())

@@ -4,6 +4,7 @@ import pprint
 from functools import lru_cache
 from os.path import join, exists, basename, dirname
 
+from common import lazyproperty
 from cache import PackageInfo
 
 class InvalidEnvironment(Exception):
@@ -19,14 +20,29 @@ class Environment(object):
         else:
             raise InvalidEnvironment('Unable to load environment {}'.format(path))
 
-        # Load PackageInfo objects
-        self.package_info = {}
-        for pi in self._link_type_packages(link_type='all').values():
-            for p in pi:
-                self.package_info[p.name] = p
         self.name = basename(path)
 
-    def packages(self):
+    @lazyproperty
+    def linked_packages(self):
+        package_info = {}
+        for pi in self._link_type_packages(link_type='all').values():
+            for p in pi:
+                package_info[p.name] = p
+        return package_info
+
+    @lazyproperty
+    def package_channels(self):
+        """
+        Returns mapping of packages to their channel sources.
+        :return: dict
+        """
+        result = {}
+        for i in self._packages.values():
+            result[i['name']] = i.get('channel', '')
+        return result
+
+    @lazyproperty
+    def package_specs(self):
         """
         Return a tuple of tuples (package, package version)
         """
@@ -38,6 +54,7 @@ class Environment(object):
 
         return tuple(zip(packages, versions))
 
+    @lru_cache()
     def _link_type_packages(self, link_type='all'):
         """
         Return all PackageInfo objects that are linked into the environment
