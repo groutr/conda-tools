@@ -3,7 +3,7 @@ import os
 from functools import lru_cache
 from os.path import join, exists
 
-from common import lazyproperty, DictView
+from common import lazyproperty
 from config import config
 
 class InvalidCachePackage(Exception):
@@ -40,6 +40,10 @@ class PackageInfo(object):
         with open(self._files, 'r') as f:
             x = map(str.strip, f.readlines())
         return set(x)
+
+    @lazyproperty
+    def full_spec(self):
+        return '{}-{}-{}'.format(self.name, self.version, self.build)
 
     def __eq__(self, other):
         if not isinstance(other, PackageInfo):
