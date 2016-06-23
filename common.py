@@ -12,3 +12,6 @@ class lazyproperty(object):
 
         result = instance.__dict__[self.__name__] = self._func(instance)
         return result
+
+    def __set__(self, instance, value):
+        raise AttributeError('Cannot set read-only attribute')
