@@ -134,7 +134,7 @@ class History(object):
         """
         res = []
         cur = set([])
-        for dt, cont, unused_com in self.parse():
+        for dt, cont, unused_com in self._parse:
             if not is_diff(cont):
                 cur = cont
             else:
@@ -154,7 +154,7 @@ class History(object):
         defaults to latest (which is the same as the current state when
         the log file is up-to-date)
         """
-        states = self.construct_states()
+        states = self.construct_states
         if not states:
             return set([])
         times, pkgs = zip(*states)
@@ -162,7 +162,7 @@ class History(object):
 
 
     def print_log(self):
-        for i, (date, content, unused_com) in enumerate(self.parse()):
+        for i, (date, content, unused_com) in enumerate(self._parse):
             print('%s  (rev %d)' % (date, i))
             for line in pretty_content(content):
                 print('    %s' % line)
@@ -171,7 +171,7 @@ class History(object):
     @lazyproperty
     def object_log(self):
         result = []
-        for i, (date, content, unused_com) in enumerate(self.parse()):
+        for i, (date, content, unused_com) in enumerate(self._parse):
             # Based on Mateusz's code; provides more details about the
             # history event
             event = {
