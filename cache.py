@@ -3,14 +3,14 @@ import os
 from functools import lru_cache
 from os.path import join, exists
 
-from common import lazyproperty
+from common import lazyproperty, DictView
 from config import config
 
 class InvalidCachePackage(Exception):
     pass
-
-@lru_cache()
+    
 class PackageInfo(object):
+
     def __init__(self, path):
         self.path = path
         self._info = join(path, 'info')
@@ -19,6 +19,15 @@ class PackageInfo(object):
             self._files = join(self._info, 'files')
         else:
             raise InvalidCachePackage("{} does not exist".format(self._info))
+    
+    @lru_cache()
+    def __getattr__(self, name):
+        if name in self.__dict__:
+            return self.__dict__[name]
+        elif name in self.index:
+            return self.index[name]
+        else:
+            raise AttributeError("No attribute {}".format(name))
 
     @lazyproperty
     def index(self):
@@ -27,21 +36,13 @@ class PackageInfo(object):
         return x
 
     @lazyproperty
-    def name(self):
-        return self.index['name']
-
-    @lazyproperty
-    def version(self):
-        return self.index['version']
-
-    @lazyproperty
     def files(self):
         with open(self._files, 'r') as f:
             x = map(str.strip, f.readlines())
         return set(x)
 
     def __eq__(self, other):
-        if not isinstance(PackageInfo, other):
+        if not isinstance(other, PackageInfo):
             return False
 
         if self.path == other.path:
@@ -52,7 +53,7 @@ class PackageInfo(object):
         return hash(self.path)
 
     def __repr__(self):
-        return 'PackageInfo({})'.format(self.path)
+        return 'PackageInfo({}) @ {}'.format(self.path, hex(id(self)))
 
     def __str__(self):
         return '{}::{}'.format(self.name, self.version)
