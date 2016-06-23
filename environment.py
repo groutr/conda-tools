@@ -6,11 +6,13 @@ from os.path import join, exists, basename, dirname
 
 from common import lazyproperty
 from cache import PackageInfo
+from history import History
 
 class InvalidEnvironment(Exception):
     pass
 
-@lru_cache()
+
+
 class Environment(object):
     """
     Represent a conda environment and information pertaining to it.
@@ -30,6 +32,8 @@ class Environment(object):
             raise InvalidEnvironment('Unable to load environment {}'.format(path))
 
         self.name = basename(path)
+
+        self.history = History(self.path)
 
     @lazyproperty
     def linked_packages(self):
@@ -61,12 +65,11 @@ class Environment(object):
         :return: (tuple) package names and their versions
         """
         json_objs = self._packages.values()
-        packages, versions = [], []
+        specs = []
         for i in json_objs:
-            packages.append(i['name'])
-            versions.append(i['version'])
-
-        return tuple(zip(packages, versions))
+            p, v, b = i['name'], i['version'], i['build']
+            specs.append('{}-{}-{}'.format(p, v, b))
+        return tuple(specs)
 
     @lru_cache()
     def _link_type_packages(self, link_type='all'):
@@ -92,7 +95,7 @@ class Environment(object):
             return tuple(result[link_type])
 
     def __eq__(self, other):
-        if not isinstance(Environment, other):
+        if not isinstance(other, Environment):
             return False
 
         if self.path == other.path:
@@ -103,7 +106,7 @@ class Environment(object):
         return hash(self.path)
 
     def __repr__(self):
-        return 'Environment({})'.format(self.path)
+        return 'Environment({}) @ {}'.format(self.path, hex(id(self)))
 
     def __str__(self):
         return 'Environment: {}\n{}'.format(self.name,
