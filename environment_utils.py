@@ -2,7 +2,11 @@
 Utility functions that map information from environments onto package cache
 """
 
+from os.path import join
+
+import utils
 from environment import Environment, environments
+from cache import PackageInfo
 
 
 def packages_in_cache(env):
@@ -22,10 +26,38 @@ def hard_linked(env):
     :return:
     """
     environ = Environment(env)
-    return environ._link_type_packages(link_type='hard-link')
+    return {p.name: p for p in environ._link_type_packages(link_type='hard-link')}
+
+def check_hardlinked_env(env):
+    """
+    Check all hardlinked packages in env
+    """
+    return {k: check_hardlinked_pkg(env, v) for k, v in hard_linked(env).items()}
+
+
+def check_hardlinked_pkg(env, Pkg):
+    """
+    Check that pkg in cache is correctly (ie completely) hardlinked into env.
+    :param env: path to environments
+    :param Pkg: PackageInfo object
+    :return: list<str> list of bad hard links
+    """
+
+    bad_linked = []
+    for f in Pkg.files:
+        src = join(Pkg.path, f)
+        tgt = join(env, f)
+        if not utils.is_hardlinked(src, tgt):
+            bad_linked.append(f)
+    return bad_linked
 
 
 def explicitly_installed(env):
+    """
+    Return list of explicitly installed packages.
+    Note that this does not work with root environments
+    """
+
     environ = Environment(env)
     current_pkgs = set(environ.package_specs)
     
