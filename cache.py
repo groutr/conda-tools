@@ -20,7 +20,7 @@ class PackageInfo(object):
         else:
             raise InvalidCachePackage("{} does not exist".format(self._info))
     
-    @lru_cache()
+    @lru_cache(maxsize=16)
     def __getattr__(self, name):
         if name in self.__dict__:
             return self.__dict__[name]
@@ -39,7 +39,7 @@ class PackageInfo(object):
     def files(self):
         with open(self._files, 'r') as f:
             x = map(str.strip, f.readlines())
-        return set(x)
+        return frozenset(x)
 
     @lazyproperty
     def full_spec(self):

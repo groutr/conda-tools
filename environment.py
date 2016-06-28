@@ -71,7 +71,7 @@ class Environment(object):
             specs.append('{}-{}-{}'.format(p, v, b))
         return tuple(specs)
 
-    @lru_cache()
+    @lru_cache(maxsize=4)
     def _link_type_packages(self, link_type='all'):
         """
         Return all PackageInfo objects that are linked into the environment
