@@ -9,16 +9,6 @@ from environment import Environment, environments
 from cache import PackageInfo
 
 
-def packages_in_cache(env):
-    """
-    Determine whether a linked package in an environment still exists in cache.
-    :param package: PackageInfo
-    :return: bool
-    """
-
-    packages = env._packages
-
-
 def hard_linked(env):
     """
     Return all packages that are hard-linked into env
@@ -65,7 +55,10 @@ def explicitly_installed(env):
 
     # Map date to explicitly installed package specs
     _ci = {'install', 'create'}
-    installed_specs = {x['date']: set(t.split()[0] for t in x['specs']) for x in hist.get_user_requests if x['action'] in _ci}
+    installed_specs = {x['date']: set(t.split()[0] 
+                        for t in x['specs']) 
+                        for x in hist.get_user_requests 
+                        if x['action'] in _ci}
 
     # See what packages were actually installed
     actually_installed = {date: set(pkg_spec) for date, pkg_spec in hist.construct_states}    
@@ -77,6 +70,7 @@ def explicitly_installed(env):
     # Intersect with currently installed packages
     actually_installed = {date: specs.intersection(current_pkgs) for date, specs in actually_installed.items()}
     return actually_installed
+    
         
 
 
