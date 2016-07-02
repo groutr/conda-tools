@@ -11,8 +11,6 @@ from history import History
 class InvalidEnvironment(Exception):
     pass
 
-
-
 class Environment(object):
     """
     Represent a conda environment and information pertaining to it.
@@ -27,13 +25,17 @@ class Environment(object):
         self.path = path
         self._meta = join(path, 'conda-meta')
         if exists(path) and exists(self._meta):
-            self._packages = load_all_json(self._meta)
+            self._packages = {}
         else:
             raise InvalidEnvironment('Unable to load environment {}'.format(path))
 
         self.name = basename(path)
 
         self.history = History(self.path)
+
+    def _read_package_json(self):
+        if not self._packages:
+            self._packages = _load_all_json(self._meta)
 
     @lazyproperty
     def linked_packages(self):
@@ -53,6 +55,7 @@ class Environment(object):
         Mapping of packages to their channel sources.
         :return: (dict<str:str>) package name: channel url
         """
+        self._read_package_json()
         result = {}
         for i in self._packages.values():
             result[i['name']] = i.get('channel', '')
@@ -64,6 +67,7 @@ class Environment(object):
         List all package specs in the environment.
         :return: (tuple) package names and their versions
         """
+        self._read_package_json()
         json_objs = self._packages.values()
         specs = []
         for i in json_objs:
@@ -77,6 +81,7 @@ class Environment(object):
         Return all PackageInfo objects that are linked into the environment
         :return: (dict<str:tuple>, tuple) PackageInfo objects organized by link type
         """
+        self._read_package_json()
         if link_type not in {'hard-link', 'soft-link', 'copy', 'all'}:
             raise ValueError('link_type must be hard-link, soft-link, copy, or all')
 
@@ -113,7 +118,7 @@ class Environment(object):
                                               pprint.pformat(self.packages(), indent=4, compact=True))
 
 
-def load_all_json(path):
+def _load_all_json(path):
     """
     Load all json files in a directory.  Return dictionary with filenames mapped to json dictionaries.
     """
@@ -121,11 +126,13 @@ def load_all_json(path):
     result = {}
     for f in files:
         if f.endswith('.json'):
-            with open(os.path.join(root, f), 'r') as fin:
-                x = json.load(fin)
-            result[f] = x
+            result[f] = _load_json(join(root, f))
     return result
 
+def _load_json(path):
+    with open(path, 'r') as fin:
+        x = json.load(fin)
+    return x
 
 def environments(path, verbose=False):
     """
