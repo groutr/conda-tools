@@ -10,11 +10,18 @@ class InvalidCachePackage(Exception):
     pass
     
 class PackageInfo(object):
-
+    """
+    Represent a package and its files in the pkg cache.
+    """
     def __init__(self, path):
+        """
+        Provide an interface to a cached package.
+
+        A valid path should have 
+        """
         self.path = path
         self._info = join(path, 'info')
-        if path == 'root' or exists(path) and exists(self._info):
+        if exists(path) and exists(self._info):
             self._index = join(self._info, 'index.json')
             self._files = join(self._info, 'files')
         else:
