@@ -12,11 +12,10 @@ from cache import PackageInfo
 def hard_linked(env):
     """
     Return all packages that are hard-linked into env
-    :param env:
-    :return:
+    :param env: Environment
+    :return: dict<str:PackageInfo>
     """
-    environ = Environment(env)
-    return {p.name: p for p in environ._link_type_packages(link_type='hard-link')}
+    return {p.name: p for p in env._link_type_packages(link_type='hard-link')}
 
 def check_hardlinked_env(env):
     """
@@ -36,7 +35,7 @@ def check_hardlinked_pkg(env, Pkg):
     bad_linked = []
     for f in Pkg.files:
         src = join(Pkg.path, f)
-        tgt = join(env, f)
+        tgt = join(env.path, f)
         if not utils.is_hardlinked(src, tgt):
             bad_linked.append(f)
     return bad_linked
@@ -48,7 +47,6 @@ def explicitly_installed(env):
     Note that this does not work with root environments
     """
 
-    environ = Environment(env)
     current_pkgs = set(environ.package_specs)
     
     hist = environ.history
