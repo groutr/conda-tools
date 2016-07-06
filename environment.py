@@ -75,6 +75,18 @@ class Environment(object):
             specs.append('{}-{}-{}'.format(p, v, b))
         return tuple(specs)
 
+    @property
+    def hard_linked(self):
+        return self._link_type_packages('hard-link')
+    
+    @property
+    def soft_linked(self):
+        return self._link_type_packages('soft-link')
+
+    @property
+    def copy_linked(self):
+        return self._link_type_packages('copy')
+
     @lru_cache(maxsize=4)
     def _link_type_packages(self, link_type='all'):
         """
