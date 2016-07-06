@@ -70,7 +70,7 @@ class PackageInfo(object):
         return '{}::{}'.format(self.name, self.version)
 
 
-def load_cache(path, verbose=False):
+def packages(path, verbose=False):
     if not exists(path):
         raise IOError('{} cache does not exist!'.format(path))
 
@@ -86,12 +86,11 @@ def load_cache(path, verbose=False):
             continue
     return tuple(result)
 
-
 def named_cache(path):
     """
     Return dictionary of cache with (package name, package version) mapped to cache entry.
     :param path: path to pkg cache
     :return: dict
     """
-    return {(i.name, i.version): i for i in load_cache(path)}
+    return {(i.name, i.version): i for i in packages(path)}
 
