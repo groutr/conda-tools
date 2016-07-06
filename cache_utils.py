@@ -11,13 +11,12 @@ from environment import environments
 
 def linked_environments(package, environments):
     """"
-    Determine which package is linked to which environments
+    Determine where package is linked to which environments
     :param package: PackageInfo
     :param environments: sequence of Environment
     :return: tuple(Environment)
     """
-    envs = tuple(environments)
-    linked_envs = (env for env in envs if package in set(env.linked_packages.values()))
+    linked_envs = (env for env in environments if package in set(env.linked_packages.values()))
     return tuple(linked_envs)
 
 
@@ -28,7 +27,6 @@ def all_linked_environments(packages, environments):
     :param environments: sequence of Environment
     :return: dict<PackageInfo:tuple(Environment)>
     """
-    packages, environments = tuple(packages), tuple(environments)
     result = {p: linked_environments(p, environments) for p in packages}
     return result
 
