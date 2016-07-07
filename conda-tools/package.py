@@ -4,10 +4,6 @@ import json
 
 
 class Package(object):
-    """
-    Represent 
-
-    """
 
     def __init__(self, path, mode='r'):
         self.path = path

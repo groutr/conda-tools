@@ -16,7 +16,7 @@ class lazyproperty(object):
             return None
 
         class Sentinel(object):
-            pass
+            __slots__ = []
 
         result = instance.__dict__.get(self.__name__, Sentinel())
         if isinstance(result, Sentinel):

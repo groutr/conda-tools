@@ -5,6 +5,7 @@ Licensed under BSD 3-clause license.
 
 import re
 import time
+from json import loads
 from functools import lru_cache
 from os.path import isfile, join
 
@@ -122,7 +123,7 @@ class History(object):
                 if m:
                     action, specs = m.groups()
                     item['action'] = action
-                    item['specs'] = eval(specs)
+                    item['specs'] = loads(specs)
             if 'cmd' in item:
                 res.append(item)
         return res

@@ -3,10 +3,33 @@ A collection of Python modules and tools for working with the conda packaging sy
 These modules provide, what I think, are useful abstractions for modeling information about conda environments and packages.
 Some of the useful queries are:
  1. List packages that are not linked to any environment
+    ```
+    import cache_utils
+    cache_utils.unlinked_packages(cache_path, envs_path)
+    ```
  2. List all environments a package is linked to
- 3. List all environments/packages
+    ```
+    import cache_utils
+    cache_utils.all_linked_environments(cache_path, envs_path)
+    ```
+ 3. List all environments
+    ```
+    import environment
+
+    environment.named_environments(envs_path)
+    ```
  4. List all packages in cache
+    ```
+    import cache
+
+    cache.named_cache(cache_path)
+    ```
  5. List all files in package/environment that are not hardlinked from the cache
+    ```
+    import environment_utils
+
+    environment_utils.
+    ```
  6. List all packages that were explicitly installed by the user
  7. List all channels used by an environment
  8. How is each package linked to an environment (soft-linked, hard-linked, or copied)

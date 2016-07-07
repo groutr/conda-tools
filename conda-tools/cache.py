@@ -29,12 +29,15 @@ class PackageInfo(object):
     
     @lru_cache(maxsize=16)
     def __getattr__(self, name):
+        """
+        Provide attribute access in to self.index
+
+        If an attribute is not resolvable, return None.
+        """
         if name in self.__dict__:
             return self.__dict__[name]
         elif name in self.index:
             return self.index[name]
-        else:
-            raise AttributeError("No attribute {}".format(name))
 
     @lazyproperty
     def index(self):
