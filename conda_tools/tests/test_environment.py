@@ -62,8 +62,6 @@ def test_link_types_copy(create_cttest1):
 
     assert x._link_type_packages('copy') == all_types['copy']
 
-def 
-
 def test_environments(create_cttest1):
     result = env.environments(root_envs)
     assert isinstance(result, tuple)
