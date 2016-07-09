@@ -5,8 +5,8 @@ Utility functions that map information from environments onto package cache
 from os.path import join
 
 import utils
-from environment import Environment, environments
-from cache import PackageInfo
+from .environment import Environment, environments
+from .cache import PackageInfo
 
 
 def hard_linked(env):

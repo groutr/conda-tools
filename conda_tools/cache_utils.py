@@ -4,9 +4,9 @@ Utility functions that map information from caches onto environments
 
 import os
 
-from config import config
-from cache import PackageInfo
-from environment import environments
+from .config import config
+from .cache import PackageInfo
+from .environment import environments
 
 
 def linked_environments(package, environments):

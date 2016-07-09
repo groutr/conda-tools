@@ -3,7 +3,7 @@ import pytest
 from os.path import join
 
 from conda.config import root_dir
-import environment as env
+from .. import environment as env
 
 base_create = ('conda', 'create', '--yes', '--quiet', '-n')
 base_destroy = ('conda', 'env', 'remove', '--yes', '--quet', '-n')

@@ -4,9 +4,9 @@ import pprint
 from functools import lru_cache
 from os.path import join, exists, basename, dirname
 
-from common import lazyproperty
-from cache import PackageInfo
-from history import History
+from .common import lazyproperty
+from .cache import PackageInfo
+from .history import History
 
 class InvalidEnvironment(Exception):
     pass

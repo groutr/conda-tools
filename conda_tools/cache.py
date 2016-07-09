@@ -3,8 +3,8 @@ import os
 from functools import lru_cache
 from os.path import join, exists
 
-from common import lazyproperty
-from config import config
+from .common import lazyproperty
+from .config import config
 
 class InvalidCachePackage(Exception):
     pass

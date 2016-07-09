@@ -9,7 +9,7 @@ from json import loads
 from functools import lru_cache
 from os.path import isfile, join
 
-from common import lazyproperty
+from .common import lazyproperty
 
 class CondaHistoryException(Exception):
     pass

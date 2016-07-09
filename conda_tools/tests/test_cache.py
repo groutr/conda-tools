@@ -1,1 +1,1 @@
-import cache
+from .. import cache
