@@ -11,8 +11,3 @@ def is_hardlinked(f1, f2):
     except:
         return False
 
-def is_softlinked(f):
-    """
-    Determine if two files are softlinked
-    """
-    return os.path.islink(f)
