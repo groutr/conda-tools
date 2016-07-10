@@ -11,9 +11,7 @@ from .cache import PackageInfo
 
 def hard_linked(env):
     """
-    Return all packages that are hard-linked into env
-    :param env: Environment
-    :return: dict<str:PackageInfo>
+    Return dictionary of all packages (as PackageInfo instances) that are hard-linked into *env*
     """
     return {p.name: p for p in env._link_type_packages(link_type='hard-link')}
 
@@ -26,10 +24,9 @@ def check_hardlinked_env(env):
 
 def check_hardlinked_pkg(env, Pkg):
     """
-    Check that pkg in cache is correctly (ie completely) hardlinked into env.
-    :param env: path to environments
-    :param Pkg: PackageInfo object
-    :return: list<str> list of bad hard links
+    Check that pkg in cache is correctly (or completely) hardlinked into env.
+
+    Returns a list of improperly hardlinked files.
     """
 
     bad_linked = []
