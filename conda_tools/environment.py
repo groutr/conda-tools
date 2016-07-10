@@ -12,15 +12,11 @@ class InvalidEnvironment(Exception):
     pass
 
 class Environment(object):
-    """
-    Represent a conda environment and information pertaining to it.
-    """
     def __init__(self, path):
         """
         Initialize an Environment object.  Many of the properties of this object
         are lazy, and are calculated on first access.
         To reflect changes in the underlying environment, a new Environment object should be created.
-        :param path: (str) path to environment folder
         """
         self.path = path
         self._meta = join(path, 'conda-meta')
@@ -41,7 +37,6 @@ class Environment(object):
     def linked_packages(self):
         """
         List all packages linked into the environment.
-        :return: (dict<str:PackageInfo>) package name: PackageInfo
         """
         package_info = {}
         for pi in self._link_type_packages(link_type='all').values():
@@ -53,7 +48,6 @@ class Environment(object):
     def package_channels(self):
         """
         Mapping of packages to their channel sources.
-        :return: (dict<str:str>) package name: channel url
         """
         self._read_package_json()
         result = {}
@@ -65,7 +59,6 @@ class Environment(object):
     def package_specs(self):
         """
         List all package specs in the environment.
-        :return: (tuple) package names and their versions
         """
         self._read_package_json()
         json_objs = self._packages.values()
@@ -90,8 +83,9 @@ class Environment(object):
     @lru_cache(maxsize=4)
     def _link_type_packages(self, link_type='all'):
         """
-        Return all PackageInfo objects that are linked into the environment
-        :return: (dict<str:tuple>, tuple) PackageInfo objects organized by link type
+        Return all PackageInfo objects that are linked into the environment.
+        
+        If *link_type=all*, then the dictionary returned is keyed by the type of linking
         """
         self._read_package_json()
         if link_type not in {'hard-link', 'soft-link', 'copy', 'all'}:
@@ -111,13 +105,15 @@ class Environment(object):
         else:
             return tuple(result[link_type])
 
+    def __lt__(self, other):
+        if isinstance(other, Environment):
+            return self.path < other.path
+
     def __eq__(self, other):
         if not isinstance(other, Environment):
             return False
 
-        if self.path == other.path:
-            return True
-        return False
+        return self.path == other.path
 
     def __hash__(self):
         return hash(self.path)
@@ -149,9 +145,8 @@ def _load_json(path):
 def environments(path, verbose=False):
     """
     List all known environments, including root environment.
-    :param path: (str) path to directory of environments
-    :param verbose: (bool) show verbose output
-    :return: (tuple) Environments
+
+    Returns a sequence of Environment objects created from *path* plus the root environment.
     """
     root, dirs, files = next(os.walk(path, topdown=True))
 
@@ -171,8 +166,6 @@ def environments(path, verbose=False):
 def named_environments(path):
     """
     Returns a dictionary of all environments keyed by environment name
-    :param path: path to environments directory
-    :return: (dict<str:Environment>)
     """
     return {e.name: e for e in environments(path)}
 
