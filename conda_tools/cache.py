@@ -79,7 +79,7 @@ class PackageInfo(object):
         return 'PackageInfo({}) @ {}'.format(self.path, hex(id(self)))
 
     def __str__(self):
-        return '{}::{}'.format(self.name, self.version)
+        return self.full_spec
 
 
 def packages(path, verbose=False):
