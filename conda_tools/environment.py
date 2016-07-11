@@ -122,9 +122,7 @@ class Environment(object):
         return 'Environment({}) @ {}'.format(self.path, hex(id(self)))
 
     def __str__(self):
-        return 'Environment: {}\n{}'.format(self.name,
-                                              pprint.pformat(self.packages(), indent=4, compact=True))
-
+        return 'Environment: {}'.format(self.name)
 
 def _load_all_json(path):
     """
