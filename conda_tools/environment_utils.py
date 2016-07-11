@@ -4,9 +4,9 @@ Utility functions that map information from environments onto package cache
 
 from os.path import join
 
-import utils
 from .environment import Environment, environments
 from .cache import PackageInfo
+from .utils import is_hardlinked
 
 
 def hard_linked(env):
@@ -33,7 +33,7 @@ def check_hardlinked_pkg(env, Pkg):
     for f in Pkg.files:
         src = join(Pkg.path, f)
         tgt = join(env.path, f)
-        if not utils.is_hardlinked(src, tgt):
+        if not is_hardlinked(src, tgt):
             bad_linked.append(f)
     return bad_linked
 
