@@ -25,4 +25,4 @@ class lazyproperty(object):
     
 
     def __set__(self, instance, value):
-        raise AttributeError('Cannot set read-only attribute')
+        raise AttributeError('Cannot set read-only attribute on {}'.format(type(instance)))
