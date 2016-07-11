@@ -24,7 +24,7 @@ def linked_environments(packages, environments):
     """
     Return a dictionary that maps each package in *packages* to all of its linked environments
     """
-    result = {p: linked_environments(p, environments) for p in packages}
+    result = {p: _linked_environments(p, environments) for p in packages}
     return result
 
 
@@ -34,7 +34,7 @@ def unlinked_packages(packages, environments):
 
     These packages should be safe to remove.
     """
-    linked = all_linked_environments(packages, environments)
+    linked = linked_environments(packages, environments)
     return tuple(pkg for pkg, env in linked.items() if not env)
 
 
