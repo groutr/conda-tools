@@ -1,0 +1,17 @@
+package:
+  name: conda-tools
+  version: 0.1
+
+source:
+  git_url: ..
+  git_rev: master
+
+requirements:
+  build:
+    - python
+  run:
+    - python
+
+about:
+  home: https://github.com/groutr/conda-tools
+  license: BSD
