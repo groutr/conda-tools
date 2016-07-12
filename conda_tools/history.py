@@ -6,10 +6,9 @@ Licensed under BSD 3-clause license.
 import re
 import time
 from json import loads
-from functools import lru_cache
 from os.path import isfile, join
 
-from .common import lazyproperty
+from .common import lazyproperty, lru_cache
 
 class CondaHistoryException(Exception):
     pass

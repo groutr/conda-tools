@@ -1,9 +1,8 @@
 import json
 import os
-from functools import lru_cache
 from os.path import join, exists
 
-from .common import lazyproperty
+from .common import lazyproperty, lru_cache
 from .config import config
 
 class InvalidCachePackage(Exception):

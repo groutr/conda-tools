@@ -1,10 +1,9 @@
 import os
 import json
 import pprint
-from functools import lru_cache
 from os.path import join, exists, basename, dirname
 
-from .common import lazyproperty
+from .common import lazyproperty, lru_cache
 from .cache import PackageInfo
 from .history import History
 
