@@ -27,6 +27,7 @@ Some of the useful queries are:
 
     ```python
     import cache_utils
+    
     cache_utils.unlinked_packages(cache_path, envs_path)
     ```
     
@@ -34,6 +35,7 @@ Some of the useful queries are:
 
     ```python
     import cache_utils
+    
     cache_utils.all_linked_environments(cache_path, envs_path)
     ```
     
