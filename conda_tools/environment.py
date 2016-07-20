@@ -32,6 +32,21 @@ class Environment(object):
         if not self._packages:
             self._packages = _load_all_json(self._meta)
 
+    def activated(self):
+        """
+        Returns true if this environment instance is active.
+        For non-root environments, this means that CONDA_PREFIX is defined in the environment. O(1)
+        For root environments, PATH is search (O(n)).
+        """
+        conda_prefix = os.environ.get('CONDA_PREFIX', None)
+        if conda_prefix is None:
+            # we might be in the root environment.
+            return self.path in os.environ['path'].split(os.pathsep)
+        elif conda_prefix == self.path:
+            return True
+        return False
+
+
     @lazyproperty
     def linked_packages(self):
         """
