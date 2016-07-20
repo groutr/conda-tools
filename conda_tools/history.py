@@ -122,7 +122,7 @@ class History(object):
                 if m:
                     action, specs = m.groups()
                     item['action'] = action
-                    item['specs'] = loads(specs)
+                    item['specs'] = loads(specs.replace("'", "\""))
             if 'cmd' in item:
                 res.append(item)
         return res
