@@ -44,9 +44,9 @@ def explicitly_installed(env):
     Note that this does not work with root environments
     """
 
-    current_pkgs = set(environ.package_specs)
+    current_pkgs = set(env.package_specs)
     
-    hist = environ.history
+    hist = env.history
 
     # Map date to explicitly installed package specs
     _ci = {'install', 'create'}
