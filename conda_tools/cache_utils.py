@@ -11,7 +11,7 @@ from .environment import environments
 
 def _linked_environments(package, environments):
     """"
-    Determine where package is linked to which environments
+    Determine what package is linked to which environments
 
     This function is wrapped by :py:func:`linked_environments` to provide a consistent API.
     Please call :py:func:`linked_environments` instead.
