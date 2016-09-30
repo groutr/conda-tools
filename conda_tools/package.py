@@ -1,8 +1,11 @@
 import tarfile
 import json
-from pathlib import PurePath, PureWindowsPat
-from os.path import realpath, abspath, join
+import bz2
+import os
+from pathlib import PurePath
+from os.path import realpath, normpath, join, splitext
 from hashlib import md5
+
 
 try:
     from collections.abc import Iterable
@@ -22,11 +25,20 @@ class Package(object):
     A convenience class specifically tailored to conda archives.
     This class is intended for read-only access.
     """
-    def __init__(self, path):
-        self.path = path
-        self.mode = mode
-        self._tarfile = tarfile.open(path, mode='r')
+    def __init__(self, path, decompress=False):
+        if decompress:
+            self.path = _decompress_bz2(path)
+        else:
+            self.path = path
+        self.decompressed = decompress
+        self._tarfile = tarfile.open(self.path, mode='r')
 
+    def close(self):
+        self._tarfile.close()
+
+        if self.decompressed:
+            os.remove(self.path)
+            
     @lazyproperty
     def hash(self):
         h = md5()
@@ -41,14 +53,18 @@ class Package(object):
 
     def extract(self, members, destination='.'):
         """
-        Extract tarfile member to destination.
+        Extract tarfile member to destination.  If destination is None, file is extracted into memory
 
+        If sanitize_paths is True, then paths will be checked
         This method does some basic sanitation of the member.
         """
-        self._tarfile.extractall(path=destination, members=sane_members(members))
-
+        if destination is None:
+            for m in members:
+                yield self._tarfile.extractfile(m)
+        else:
+            self._tarfile.extractall(path=destination, members=sane_members(members, destination))
         
-def sane_members(members):
+def sane_members(members, destination):
     resolve = lambda path: realpath(normpath(join(destination, path)))
 
     destination = PurePath(destination)
@@ -71,3 +87,22 @@ def sane_members(members):
                 raise BadLinkError("Bad link to outside destination directory: {}".format(cpath))
         
         yield member
+
+def _decompress_bz2(filename, blocksize=900*1024):
+    """
+    Decompress .tar.bz2 to .tar on disk (for faster access)
+    """
+    if not filename.endswith('.tar.bz2'):
+        return filename
+    
+    tar_ext = splitext(filename)[0] + ".tmp"
+    with open(tar_ext, 'wb') as fo:
+        with open(filename, 'rb') as fi:
+            z = bz2.BZ2Decompressor()
+            
+            while True:
+                block = fi.read(blocksize)
+                if not block:
+                    break
+                fo.write(z.decompress(block))
+    return tar_ext
