@@ -1,3 +1,4 @@
+import stat
 from os import lstat, error
 
 
@@ -11,3 +12,15 @@ def is_hardlinked(f1, f2):
     except error:
         return False
 
+def is_executable(mode):
+    """
+    Check if mode is executable
+
+    Mode can be specified in octal or as an int.
+    """
+    if isinstance(mode, str) and mode.startswith('0o'):
+        mode = int(mode, 8)
+    
+    ux, gx, ox = stat.S_IXUSR, stat.S_IXGRP, stat.S_IXOTH
+
+    return ((mode & ux) or (mode & gx) or (mode & ox)) > 0
