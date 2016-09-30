@@ -2,6 +2,7 @@ import os
 import json
 import pprint
 from os.path import join, exists, basename, dirname
+from functools import reduce
 
 from .common import lazyproperty, lru_cache
 from .cache import PackageInfo
@@ -94,6 +95,10 @@ class Environment(object):
     def copy_linked(self):
         return self._link_type_packages('copy')
 
+    @property
+    def packages(self):
+        return tuple(reduce(tuple.__add__, self._link_type_packages('all').values()))
+
     @lru_cache(maxsize=4)
     def _link_type_packages(self, link_type='all'):
         """
@@ -163,16 +168,18 @@ def environments(path, verbose=False):
     root, dirs, files = next(os.walk(path, topdown=True))
 
     # root environment added first
-    envs = [Environment(dirname(root))]
+    yield Environment(dirname(root))
+    #envs = [Environment(dirname(root))]
     for d in dirs:
         try:
-            envs.append(Environment(join(root, d)))
+            yield Environment(join(root, d))
+            #envs.append(Environment(join(root, d)))
         except InvalidEnvironment:
             if verbose:
                 print("Ignoring {}".format(join(root, d)))
             continue
 
-    return tuple(envs)
+    #return tuple(envs)
 
 
 def named_environments(path):
@@ -181,3 +188,10 @@ def named_environments(path):
     """
     return {e.name: e for e in environments(path)}
 
+def active_environment(path):
+    """
+    Return the active environment.
+    """
+    for x in environments(path):
+        if x.activated:
+            return x
