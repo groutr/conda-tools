@@ -1,7 +1,7 @@
 import os
 import json
 import pprint
-from os.path import join, exists, basename, dirname
+from os.path import join, isdir, basename, dirname
 from functools import reduce
 
 from .common import lazyproperty, lru_cache
@@ -20,7 +20,7 @@ class Environment(object):
         """
         self.path = path
         self._meta = join(path, 'conda-meta')
-        if exists(path) and exists(self._meta):
+        if isdir(path) and isdir(self._meta):
             self._packages = {}
         else:
             raise InvalidEnvironment('Unable to load environment {}'.format(path))
@@ -169,17 +169,13 @@ def environments(path, verbose=False):
 
     # root environment added first
     yield Environment(dirname(root))
-    #envs = [Environment(dirname(root))]
     for d in dirs:
         try:
             yield Environment(join(root, d))
-            #envs.append(Environment(join(root, d)))
         except InvalidEnvironment:
             if verbose:
                 print("Ignoring {}".format(join(root, d)))
             continue
-
-    #return tuple(envs)
 
 
 def named_environments(path):
