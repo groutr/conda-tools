@@ -1,7 +1,6 @@
 import stat
 from os import lstat, error
 
-
 def is_hardlinked(f1, f2):
     """
     Determine if two files are hardlinks to the same inode.
@@ -24,3 +23,35 @@ def is_executable(mode):
     ux, gx, ox = stat.S_IXUSR, stat.S_IXGRP, stat.S_IXOTH
 
     return ((mode & ux) or (mode & gx) or (mode & ox)) > 0
+
+def is_macho(fileobj):
+    """
+    Check if file is a valid Mach O binary (OS X).
+    """
+    with open(filepath, 'rb') as fi:
+        magic = fi.read(4)
+    if (magic == b'\xcf\xfa\xed\xfe' or magic == b'\xfe\xed\xfa\xcf' or
+        magic == b'\xce\xfa\xed\xfe' or magic == b'\xfe\xed\xfa\xce'): 
+        return True
+    return False
+
+def is_pe(fileobj):
+    """
+    Check if file is valid Windows PE binary.
+    """
+    with open(filepath, 'rb') as fi:
+        magic = fi.read(2)
+    if magic == b'MZ':
+        return True
+    return False
+
+def is_elf(filepath):
+    """
+    Check if file is valid ELF binary.
+    """
+    with open(filepath, 'rb') as fi:
+        magic = fi.read(4)
+    if magic == b'\x7fELF':
+        return True
+    return False
+    
