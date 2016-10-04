@@ -1,11 +1,24 @@
 import json
 import os
-from os.path import join, exists
+import tarfile
+import bz2
+from os.path import (join, exists, isdir, realpath, normpath, splitext)
+from tempfile import mkstemp
+from pathlib import PurePath
+from hashlib import md5
 
 from .common import lazyproperty, lru_cache
 from .config import config
 
 class InvalidCachePackage(Exception):
+    pass
+
+class BadLinkError(Exception):
+    """
+    Error raised when a symbolic link is bad.
+
+    Can also arise when the link is possibly malicious.
+    """
     pass
     
 class PackageInfo(object):
@@ -17,7 +30,7 @@ class PackageInfo(object):
         """
         self.path = path
         self._info = join(path, 'info')
-        if exists(path) and exists(self._info):
+        if isdir(path) and isdir(self._info):
             self._index = join(self._info, 'index.json')
             self._files = join(self._info, 'files')
         else:
@@ -89,17 +102,15 @@ def packages(path, verbose=False):
     if not exists(path):
         raise IOError('{} cache does not exist!'.format(path))
 
-    result = []
     cache = os.walk(path, topdown=True)
     root, dirs, files = next(cache)
     for d in dirs:
         try:
-            result.append(PackageInfo(join(root, d)))
+            yield PackageInfo(join(root, d))
         except InvalidCachePackage:
             if verbose:
                 print("Skipping {}".format(d))
             continue
-    return tuple(result)
 
 def named_cache(path):
     """
@@ -108,3 +119,137 @@ def named_cache(path):
     """
     return {(i.name, i.version): i for i in packages(path)}
 
+
+class PackageArchive(object):
+    """
+    A very thin wrapper around tarfile objects.
+
+    A convenience class specifically tailored to conda archives.
+    This class is intended for read-only access.
+    """
+    def __init__(self, path, decompress=False):
+        """
+        Represent a package archive in the global package cache.
+
+        Setting decompress=True can result in significant performance gains,
+        especially if working with many files inside the archive.
+        Performance gains can be as much as 10000%.
+
+        """
+        self._decompressed = False
+        self.path = path
+
+        if decompress:
+            self._decompress()
+
+        self._open()
+
+    def __del__(self):
+        self.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__ (self, exc_type, exc_val, exc_tb):
+        self.close()
+
+    def close(self):
+        try:
+            self._tarfile.close()
+        except:
+            pass
+
+        if self._decompressed and exists(self.path):
+            os.remove(self.path)
+
+    def _open(self):
+        try:
+            self._tarfile.close()
+        except:
+            pass
+        
+        if exists(self.path):
+            self._tarfile = tarfile.open(self.path, mode='r')
+        else:
+            raise InvalidCachePackage("{} does not exist".format(self.path))
+
+    def _decompress(self):
+        if not self._decompressed:
+            self._path = self.path
+            self.path = _decompress_bz2(self._path)
+            self._decompressed = True
+
+    @lazyproperty
+    def hash(self):
+        h = md5()
+        blocksize = h.block_size
+
+        if hasattr(self, '_path'):
+            path = self._path
+        else:
+            path = self.path
+
+        with open(path, 'rb') as hin:
+            h.update(hin.read(blocksize))
+        return h.hexdigest()
+
+    def files(self):
+        return self._tarfile.getmembers()
+
+    def extract(self, members, destination='.'):
+        """
+        Extract tarfile member to destination.  If destination is None, file is extracted into memory
+
+        If sanitize_paths is True, then paths will be checked
+        This method does some basic sanitation of the member.
+        """
+        if destination is None:
+            for m in members:
+                yield self._tarfile.extractfile(m)
+        else:
+            self._tarfile.extractall(path=destination, members=sane_members(members, destination))
+        
+def sane_members(members, destination):
+    resolve = lambda path: realpath(normpath(join(destination, path)))
+
+    destination = PurePath(destination)
+
+    for member in members:
+        mpath = PurePath(resolve(member.path))
+
+        # Check if mpath is under destination
+        if destination not in mpath.parents:
+            raise BadPathError("Bad path to outside destination directory: {}".format(mpath))
+        elif m.issym() or m.islnk():
+            # Check link to make sure it resolves under destination
+            lnkpath = PurePath(m.linkpath)
+            if lnkpath.is_absolute() or lnkpath.is_reserved():
+                raise BadLinkError("Bad link: {}".format(lnkpath))
+            
+            # resolve the link to an absolute path
+            lnkpath = PurePath(resolve(lnkpath))
+            if destination not in lnkpath.parents:
+                raise BadLinkError("Bad link to outside destination directory: {}".format(cpath))
+        
+        yield member
+
+def _decompress_bz2(filename, blocksize=900*1024):
+    """
+    Decompress .tar.bz2 to .tar on disk (for faster access)
+
+    Use TemporaryFile to guarentee write access.
+    """
+    if not filename.endswith('.tar.bz2'):
+        return filename
+    
+    fd, path = mkstemp()
+    with os.fdopen(fd, 'wb') as fo:
+        with open(filename, 'rb') as fi:
+            z = bz2.BZ2Decompressor()
+            
+            while True:
+                block = fi.read(blocksize)
+                if not block:
+                    break
+                fo.write(z.decompress(block))
+    return path
