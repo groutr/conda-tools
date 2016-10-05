@@ -2,7 +2,7 @@ import json
 import os
 import tarfile
 import bz2
-from os.path import (join, exists, isdir, realpath, normpath, splitext)
+from os.path import (join, exists, isdir, realpath, normpath, split)
 from tempfile import mkstemp
 from pathlib import PurePath
 from hashlib import md5
@@ -19,6 +19,9 @@ class BadLinkError(Exception):
 
     Can also arise when the link is possibly malicious.
     """
+    pass
+
+class BadPathError(Exception):
     pass
     
 class PackageInfo(object):
@@ -99,11 +102,11 @@ def packages(path, verbose=False):
     Collect and return a sequence of PackageInfo instances that represent
     each extracted package in the package cache, *path*.
     """
-    if not exists(path):
-        raise IOError('{} cache does not exist!'.format(path))
+    if not isdir(path):
+        raise IOError('{} cache should be a directory path!'.format(path))
 
     cache = os.walk(path, topdown=True)
-    root, dirs, files = next(cache)
+    root, dirs, _ = next(cache)
     for d in dirs:
         try:
             yield PackageInfo(join(root, d))
@@ -150,7 +153,7 @@ class PackageArchive(object):
     def __enter__(self):
         return self
 
-    def __exit__ (self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
 
     def close(self):
@@ -208,6 +211,13 @@ class PackageArchive(object):
                 yield self._tarfile.extractfile(m)
         else:
             self._tarfile.extractall(path=destination, members=sane_members(members, destination))
+
+    def __repr__(self):
+        return 'PackageArchive({}) @ {}'.format(self.path, hex(id(self)))
+
+    def __str__(self):
+        return self.path
+        
         
 def sane_members(members, destination):
     resolve = lambda path: realpath(normpath(join(destination, path)))
@@ -220,16 +230,16 @@ def sane_members(members, destination):
         # Check if mpath is under destination
         if destination not in mpath.parents:
             raise BadPathError("Bad path to outside destination directory: {}".format(mpath))
-        elif m.issym() or m.islnk():
+        elif member.issym() or member.islnk():
             # Check link to make sure it resolves under destination
-            lnkpath = PurePath(m.linkpath)
+            lnkpath = PurePath(member.linkpath)
             if lnkpath.is_absolute() or lnkpath.is_reserved():
                 raise BadLinkError("Bad link: {}".format(lnkpath))
             
             # resolve the link to an absolute path
             lnkpath = PurePath(resolve(lnkpath))
             if destination not in lnkpath.parents:
-                raise BadLinkError("Bad link to outside destination directory: {}".format(cpath))
+                raise BadLinkError("Bad link to outside destination directory: {}".format(lnkpath))
         
         yield member
 
@@ -253,3 +263,22 @@ def _decompress_bz2(filename, blocksize=900*1024):
                     break
                 fo.write(z.decompress(block))
     return path
+
+def archives(path):
+    """
+    Return a tuple of package archives
+    """
+    if not isdir(path):
+        raise IOError('{} cache should be a directory path!'.format(path))
+
+    cache = os.walk(path, topdown=True)
+    root, _, files = next(cache)
+    for f in files:
+        try:
+            if f.endswith('.tar.bz2'):
+                yield PackageArchive(join(root, f))
+        except InvalidCachePackage:
+            continue
+
+def named_archives(path):
+    return {split(x.path)[1]: x for x in archives(path)}
