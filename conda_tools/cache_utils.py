@@ -3,10 +3,11 @@ Utility functions that map information from caches onto environments
 """
 
 import os
+import hashlib
 
+from .cache import correlated_cache
 from .config import config
-from .cache import PackageInfo
-from .environment import environments
+
 
 
 def _linked_environments(package, environments):
@@ -38,6 +39,54 @@ def unlinked_packages(packages, environments):
     return tuple(pkg for pkg, env in linked.items() if not env)
 
 
+def verify_hashes(packages, archives, hash_alg='md5'):
+    """
+    Loop through all given package objects and compare the hashes with hashes in package archive.
+
+    Any hash that is supported by Python's hashlib can be used for comparison.
+
+    In the interest of speed, files are iterated in the order they appear in the archive.?
+
+    packages and archives are assumed to zippable.
+    Return a tuple of file hashes that do match.
+    """
+    def chunked(seq, size=1024):
+        while True:
+            block = seq.read(size)
+            if not block:
+                break
+            yield block
+
+
+    if hash_alg not in hashlib.algorithms_available:
+        raise ValueError("{} hash algorithm not available in hashlib.".format(hash_alg))
+
+    _new_hasher = lambda: hashlib.new(hash_alg)
+    for pk, ar in zip(packages, archives):
+        for tarinfo in ar:
+            th, fh = _new_hasher(), _new_hasher()
+            tfile = next(ar.extract(tarinfo, destination=None))
+            
+            fpath = os.path.join(pk.path, tarinfo.path)
+            if not os.path.exists(fpath):
+                return False
+
+            [th.update(x) for x in chunked(tfile)]
+            with open(fpath, 'rb') as fi:
+                [fh.update(x) for x in chunked(fi)]
+            
+            if th.digest() == fh.digest():
+                continue
+            else:
+                print("Mismathed hash: {}".format(tarinfo.path))
+                return False
+    return True
+             
+
+            
+
+
+    
 
 
 
