@@ -1,6 +1,7 @@
 import stat
 from os import lstat, error
 
+
 def is_hardlinked(f1, f2):
     """
     Determine if two files are hardlinks to the same inode.
@@ -24,7 +25,7 @@ def is_executable(mode):
 
     return ((mode & ux) or (mode & gx) or (mode & ox)) > 0
 
-def is_macho(fileobj):
+def is_macho(filepath):
     """
     Check if file is a valid Mach O binary (OS X).
     """
@@ -35,7 +36,7 @@ def is_macho(fileobj):
         return True
     return False
 
-def is_pe(fileobj):
+def is_pe(filepath):
     """
     Check if file is valid Windows PE binary.
     """
