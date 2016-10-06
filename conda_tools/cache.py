@@ -1,7 +1,7 @@
 import json
 import os
-import tarfile
 import bz2
+from tarfile import (open as topen, TarFile, is_tarfile)
 from os.path import (join, exists, isdir, realpath, normpath, split)
 from tempfile import mkstemp
 from pathlib import PurePath
@@ -79,6 +79,12 @@ class PackageInfo(object):
         """
         return '{}-{}-{}'.format(self.name, self.version, self.build)
 
+    def __iter__(self):
+        """
+        Return iterator over files in package
+        """
+        return iter(self.files)
+
     def __lt__(self, other):
         if isinstance(other, PackageInfo):
             return self.path < other.path
@@ -122,7 +128,7 @@ def named_cache(path):
     Return dictionary of cache with `(package name, package version)` mapped to cache entry.
     This is a simple convenience wrapper around :py:func:`packages`.
     """
-    return {(i.name, i.version): i for i in packages(path)}
+    return {split(x.path)[1]: x for x in packages(path)}
 
 
 class PackageArchive(object):
@@ -144,10 +150,10 @@ class PackageArchive(object):
         self._decompressed = False
         self._tarfile = None
 
-        if tarfile.is_tarfile(path):
+        if exists(path):
             self.path = path
         else:
-            raise InvalidCachePackage("{} is not a valid archive.".format(path))
+            raise InvalidCachePackage("{} does not exist.".format(path))
 
         if decompress:
             self._decompress()
@@ -168,7 +174,7 @@ class PackageArchive(object):
         Close an open archive and clean up possible temporary file.
         """
 
-        if isinstance(self._tarfile, tarfile.TarFile):
+        if isinstance(self._tarfile, TarFile):
             self._tarfile.close()
 
             if self._decompressed and exists(self.path):
@@ -181,23 +187,22 @@ class PackageArchive(object):
         If self.path is already open, then simply return.
         Reloading to file can be done by setting reopen=True.
         """
-        def open_tarfile():
-            return tarfile.open(self.path, mode='r')
+        _tarfile = self._tarfile
+        if not reopen and isinstance(_tarfile, TarFile) and not _tarfile.closed:
+            # Checked first for lowest overhead possible
+            return
+        
 
-        if isinstance(self._tarfile, tarfile.TarFile):
-            if not self._tarfile.closed:
-                if not reopen:
-                    # We expect this branch in the majority of cases
-                    # Hence the reason it is ordered first
-                    return
-                else:
-                    self._tarfile.close()
-                    self._tarfile = open_tarfile()
-            else:
-                # the file is closed and should be reopened
-                self._tarfile = open_tarfile()
-        elif self._tarfile is None:
-            self._tarfile = open_tarfile()        
+        if _tarfile is None:
+            self._tarfile = topen(self.path, mode='r')
+        else:
+            try:
+                _tarfile.close()
+                self._tarfile = topen(self.path, mode='r')
+            except AttributeError:
+                raise
+            except OSError:
+                raise
 
     def _decompress(self):
         if not self._decompressed:
@@ -231,6 +236,10 @@ class PackageArchive(object):
         """
         return tuple(x for x in self.files() if x.path.startswith('info/'))
 
+    def __iter__(self):
+        self._open()
+        return iter(self._tarfile)
+
     def extract(self, members, destination='.'):
         """
         Extract tarfile member to destination.  If destination is None, file is extracted into memory
@@ -239,6 +248,9 @@ class PackageArchive(object):
         This method does some basic sanitation of the member.
         """
         self._open()
+        if not isinstance(members, (set, list, tuple)):
+            members = (members,)
+
         if destination is None:
             for m in members:
                 yield self._tarfile.extractfile(m)
@@ -315,3 +327,14 @@ def archives(path):
 
 def named_archives(path):
     return {split(x.path)[1]: x for x in archives(path)}
+
+def correlated_cache(path):
+    dirs = named_cache(path)
+    ar = named_archives(path)
+    result = {}
+    for d, obj in dirs.items():
+        try:
+            result[d] = (obj, ar[d+'.tar.bz2'])
+        except KeyError:
+            continue
+    return result
