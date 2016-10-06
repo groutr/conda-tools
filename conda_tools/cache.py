@@ -23,13 +23,13 @@ class BadLinkError(Exception):
 
 class BadPathError(Exception):
     pass
-    
+
 class PackageInfo(object):
     def __init__(self, path):
         """
         Provide an interface to a cached package.
 
-        A valid *path* should have an `info/` directory. 
+        A valid *path* should have an `info/` directory.
         """
         self.path = path
         self._info = join(path, 'info')
@@ -38,13 +38,15 @@ class PackageInfo(object):
             self._files = join(self._info, 'files')
         else:
             raise InvalidCachePackage("{} does not exist".format(self._info))
-    
+
+        
+
     @lru_cache(maxsize=16)
     def __getattr__(self, name):
         """
         Provide attribute access into PackageInfo.index
 
-        If an attribute is not resolvable, return `None`.  
+        If an attribute is not resolvable, return `None`.
         Returning `None` makes possible comprehensions like for collecting a field across many instances.
         """
         if name in self.__dict__:
@@ -140,41 +142,62 @@ class PackageArchive(object):
 
         """
         self._decompressed = False
-        self.path = path
+        self._tarfile = None
+
+        if tarfile.is_tarfile(path):
+            self.path = path
+        else:
+            raise InvalidCachePackage("{} is not a valid archive.".format(path))
 
         if decompress:
             self._decompress()
 
-        self._open()
 
     def __del__(self):
         self.close()
 
     def __enter__(self):
+        self._open()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
 
     def close(self):
-        try:
-            self._tarfile.close()
-        except:
-            pass
+        """
+        Close an open archive and clean up possible temporary file.
+        """
 
-        if self._decompressed and exists(self.path):
-            os.remove(self.path)
-
-    def _open(self):
-        try:
+        if isinstance(self._tarfile, tarfile.TarFile):
             self._tarfile.close()
-        except:
-            pass
-        
-        if exists(self.path):
-            self._tarfile = tarfile.open(self.path, mode='r')
-        else:
-            raise InvalidCachePackage("{} does not exist".format(self.path))
+
+            if self._decompressed and exists(self.path):
+                os.remove(self.path)
+
+    def _open(self, reopen=False):
+        """
+        Open self.path on disk if not already open.
+
+        If self.path is already open, then simply return.
+        Reloading to file can be done by setting reopen=True.
+        """
+        def open_tarfile():
+            return tarfile.open(self.path, mode='r')
+
+        if isinstance(self._tarfile, tarfile.TarFile):
+            if not self._tarfile.closed:
+                if not reopen:
+                    # We expect this branch in the majority of cases
+                    # Hence the reason it is ordered first
+                    return
+                else:
+                    self._tarfile.close()
+                    self._tarfile = open_tarfile()
+            else:
+                # the file is closed and should be reopened
+                self._tarfile = open_tarfile()
+        elif self._tarfile is None:
+            self._tarfile = open_tarfile()        
 
     def _decompress(self):
         if not self._decompressed:
@@ -187,17 +210,26 @@ class PackageArchive(object):
         h = md5()
         blocksize = h.block_size
 
-        if hasattr(self, '_path'):
-            path = self._path
-        else:
-            path = self.path
-
+        path = getattr(self, '_path', self.path)
         with open(path, 'rb') as hin:
             h.update(hin.read(blocksize))
         return h.hexdigest()
 
     def files(self):
+        self._open()
         return self._tarfile.getmembers()
+
+    def recipe(self):
+        """
+        Return the members that pertain to the info/recipe directory
+        """
+        return tuple(x for x in self.info() if x.path.startswith('info/recipe/'))
+
+    def info(self):
+        """
+        Return TarInfo objects for info/* directory
+        """
+        return tuple(x for x in self.files() if x.path.startswith('info/'))
 
     def extract(self, members, destination='.'):
         """
@@ -206,6 +238,7 @@ class PackageArchive(object):
         If sanitize_paths is True, then paths will be checked
         This method does some basic sanitation of the member.
         """
+        self._open()
         if destination is None:
             for m in members:
                 yield self._tarfile.extractfile(m)
@@ -217,8 +250,8 @@ class PackageArchive(object):
 
     def __str__(self):
         return self.path
-        
-        
+
+
 def sane_members(members, destination):
     resolve = lambda path: realpath(normpath(join(destination, path)))
 
@@ -235,12 +268,12 @@ def sane_members(members, destination):
             lnkpath = PurePath(member.linkpath)
             if lnkpath.is_absolute() or lnkpath.is_reserved():
                 raise BadLinkError("Bad link: {}".format(lnkpath))
-            
+
             # resolve the link to an absolute path
             lnkpath = PurePath(resolve(lnkpath))
             if destination not in lnkpath.parents:
                 raise BadLinkError("Bad link to outside destination directory: {}".format(lnkpath))
-        
+
         yield member
 
 def _decompress_bz2(filename, blocksize=900*1024):
@@ -251,12 +284,12 @@ def _decompress_bz2(filename, blocksize=900*1024):
     """
     if not filename.endswith('.tar.bz2'):
         return filename
-    
+
     fd, path = mkstemp()
     with os.fdopen(fd, 'wb') as fo:
         with open(filename, 'rb') as fi:
             z = bz2.BZ2Decompressor()
-            
+
             while True:
                 block = fi.read(blocksize)
                 if not block:
