@@ -9,7 +9,7 @@ def is_hardlinked(f1, f2):
     try:
         s, d = lstat(f1), lstat(f2)
         return s.st_ino == d.st_ino and s.st_dev == d.st_dev
-    except error:
+    except:
         return False
 
 def is_executable(mode):
