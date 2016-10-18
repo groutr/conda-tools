@@ -71,10 +71,13 @@ def verify_hashes(packages, archives, hash_alg='md5'):
             if not os.path.exists(fpath):
                 return False
 
-            [th.update(x) for x in chunked(tfile)]
+            for x in chunked(tfile):
+                th.update(x)
+
             with open(fpath, 'rb') as fi:
-                [fh.update(x) for x in chunked(fi)]
-            
+                for x in chunked(fi):
+                    fh.update(x)
+                    
             if th.digest() == fh.digest():
                 continue
             else:
