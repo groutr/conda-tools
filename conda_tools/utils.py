@@ -1,4 +1,6 @@
 import stat
+import platform
+from os.path import exists
 from os import lstat, error
 
 
@@ -25,34 +27,75 @@ def is_executable(mode):
 
     return ((mode & ux) or (mode & gx) or (mode & ox)) > 0
 
-def is_macho(filepath):
+def is_macho(file):
     """
     Check if file is a valid Mach O binary (OS X).
     """
-    with open(filepath, 'rb') as fi:
-        magic = fi.read(4)
+    magic = _get_magic(file, 4)
     if (magic == b'\xcf\xfa\xed\xfe' or magic == b'\xfe\xed\xfa\xcf' or
         magic == b'\xce\xfa\xed\xfe' or magic == b'\xfe\xed\xfa\xce'): 
         return True
     return False
 
-def is_pe(filepath):
+def is_pe(file):
     """
     Check if file is valid Windows PE binary.
     """
-    with open(filepath, 'rb') as fi:
-        magic = fi.read(2)
-    if magic == b'MZ':
+    if _get_magic(file, 2) == b'MZ':
         return True
     return False
 
-def is_elf(filepath):
+def is_elf(file):
     """
     Check if file is valid ELF binary.
     """
-    with open(filepath, 'rb') as fi:
-        magic = fi.read(4)
-    if magic == b'\x7fELF':
+
+    if _get_magic(file, 4) == b'\x7fELF':
         return True
     return False
+
+def _get_magic(file, length):
+    """
+    Read magic number of file.
+
+    file: Either file object or path to file
+    length: number of bytes to read from beginning.
+        Windows: first 2 bytes are magic number
+        Linux, OS X: first 4 bytes are magic number
+
+    Returns a byte string
+
+    Raise errors if file is not readable or opened in binary on Windows.
+
+    """
+    always_bytes = lambda x: x if isinstance(x, bytes) else x.encode()
+
+    try:
+        if file.readable():
+            if platform.system() == 'Windows' and 'b' not in file.mode:
+                raise IOError("File object must be opened in binary mode")
+            
+            if file.seekable():
+                old_pos = file.tell()
+                file.seek(0)
+                magic = always_bytes(file.read(length))
+                file.seek(old_pos)
+                return magic
+            else:
+                # Non seekable file, like ExFileObject from tarfiles
+                raise IOError("Unable to seek 0 and read")
+        else:
+            raise IOError("File not readable")
+    except AttributeError:
+        # Hope that file is a path to the file in question
+        if isinstance(file, str) and exists(file):
+            with open(file, 'rb') as fi:
+                magic = fi.read(length)
+            return magic
+
+        # Raise exception as last resort
+        raise
+        
+
+
     
