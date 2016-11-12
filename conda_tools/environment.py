@@ -189,5 +189,5 @@ def active_environment(path):
     Return the active environment.
     """
     for x in environments(path):
-        if x.activated:
+        if x.activated():
             return x
