@@ -46,16 +46,15 @@ def verify_hashes(packages, archives, hash_alg='md5'):
     Any hash that is supported by Python's hashlib can be used for comparison.
 
     In the interest of speed, files are iterated in the order they appear in the archive.?
+    If they are large packages, they should be opened decompressed.
 
     packages and archives are assumed to zippable.
     Return a tuple of file hashes that do match.
     """
     def chunked(seq, size=1024):
-        while True:
-            block = seq.read(size)
-            if not block:
-                break
-            yield block
+        for block in iter(lambda: seq.read(size), b''):
+            if block:
+                yield block
 
 
     if hash_alg not in hashlib.algorithms_available:
@@ -77,7 +76,7 @@ def verify_hashes(packages, archives, hash_alg='md5'):
             with open(fpath, 'rb') as fi:
                 for x in chunked(fi):
                     fh.update(x)
-                    
+
             if th.digest() == fh.digest():
                 continue
             else:

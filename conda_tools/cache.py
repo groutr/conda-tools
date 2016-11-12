@@ -217,7 +217,8 @@ class PackageArchive(object):
 
         path = getattr(self, '_path', self.path)
         with open(path, 'rb') as hin:
-            h.update(hin.read(blocksize))
+            for block in iter(lambda: hin.read(blocksize), b''):
+                h.update(block)
         return h.hexdigest()
 
     def files(self):
@@ -302,10 +303,7 @@ def _decompress_bz2(filename, blocksize=900*1024):
         with open(filename, 'rb') as fi:
             z = bz2.BZ2Decompressor()
 
-            while True:
-                block = fi.read(blocksize)
-                if not block:
-                    break
+            for block in iter(lambda: fi.read(blocksize), b''):
                 fo.write(z.decompress(block))
     return path
 
