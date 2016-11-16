@@ -80,7 +80,7 @@ class Environment(object):
         specs = []
         for i in json_objs:
             p, v, b = i['name'], i['version'], i['build']
-            specs.append('{}-{}-{}'.format(p, v, b))
+            specs.append('{} {} {}'.format(p, v, b))
         return tuple(specs)
 
     @property
