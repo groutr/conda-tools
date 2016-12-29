@@ -22,6 +22,17 @@ def check_hardlinked_env(env):
     return {k: check_hardlinked_pkg(env, v) for k, v in hard_linked(env).items()}
 
 
+def owns(env, path):
+    """
+    Return the package in env that owns file.
+
+    This function will return all packages that claim the file. This
+    shouldn't typically happen, and if it does, could mean the packages in the
+    environment were incorrectly built.
+    """
+    return tuple(p for p in env.packages if path in p.files)
+
+
 def check_hardlinked_pkg(env, Pkg):
     """
     Check that pkg in cache is correctly (or completely) hardlinked into env.
