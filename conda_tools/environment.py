@@ -18,13 +18,12 @@ class Environment(object):
         are lazy, and are calculated on first access.
         To reflect changes in the underlying environment, a new Environment object should be created.
         """
-        self.path = path
-        self._meta = join(path, 'conda-meta')
-        if isdir(path) and isdir(self._meta):
-            self._packages = {}
-        else:
+        if not is_conda_env(path):
             raise InvalidEnvironment('Unable to load environment {}'.format(path))
 
+        self._packages = {}
+        self.path = path
+        self._meta = join(path, 'conda-meta')
         self.name = basename(path)
 
         self.history = History(self.path)
@@ -159,23 +158,27 @@ def _load_json(path):
         x = json.load(fin)
     return x
 
+def is_conda_env(path):
+    return isdir(path) and isdir(join(path, 'conda-meta'))
+
 def environments(path, verbose=False):
     """
-    List all known environments, including root environment.
+    Yield all environments under path.  If path is an environment, only path will be yielded.
+    Otherwise, any subdirectories of path that are environments will be yielded.
 
-    Returns a sequence of Environment objects created from *path* plus the root environment.
+    Returns a sequence of Environment objects created from *path*.
     """
-    root, dirs, files = next(os.walk(path, topdown=True))
-
-    # root environment added first
-    yield Environment(dirname(root))
-    for d in dirs:
-        try:
-            yield Environment(join(root, d))
-        except InvalidEnvironment:
-            if verbose:
-                print("Ignoring {}".format(join(root, d)))
-            continue
+    try:
+        yield Environment(path)
+    except InvalidEnvironment:
+        root, dirs, files = next(os.walk(path, topdown=True))
+        for d in dirs:
+            try:
+                yield Environment(join(root, d))
+            except InvalidEnvironment:
+                if verbose:
+                    print("Ignoring {}".format(join(root, d)))
+                continue
 
 
 def named_environments(path):
