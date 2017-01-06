@@ -27,18 +27,19 @@ class DictionaryPool(object):
     def register(self, d):
         d_id = id(d)
         _pool = self._pool
-        if d_id not in _pool:
-            # check to see if obj is in cache O(n)
-            for _id, _d in _pool.items():
+
+        try:
+            return _pool[d_id]
+        except KeyError:
+            # maybe a dict with same content in pool.
+            for _d in _pool.values():
                 if d == _d:
-                    # destroy reference to obj
-                    d = None
                     return _d
             
             if self.intern_keys:
                 d = self._intern_keys(d)
             self._pool[d_id] = d
-        return d
+            return d
     
     def _intern_keys(self, d):
         """
