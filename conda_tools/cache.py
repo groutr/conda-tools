@@ -213,7 +213,7 @@ class PackageArchive(object):
     @lazyproperty
     def hash(self):
         h = md5()
-        blocksize = h.block_size
+        blocksize = 16384
 
         path = getattr(self, '_path', self.path)
         with open(path, 'rb') as hin:
@@ -240,6 +240,13 @@ class PackageArchive(object):
     def __iter__(self):
         self._open()
         return iter(self._tarfile)
+
+    def get_member(self, pattern):
+        """
+        Return the member(s) that match with pattern, otherwise None.
+        """
+        _files = {m.path: m for m in self.files()}
+        return tuple(_files[m] for m in fnfilter(_files.keys(), pattern))
 
     def extract(self, members, destination='.'):
         """
