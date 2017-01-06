@@ -6,11 +6,15 @@ source:
   git_url: ..
   git_rev: master
 
+build:
+  number: 1
+
 requirements:
   build:
     - python
   run:
     - python
+    - pathlib2   [py<3]
 
 about:
   home: https://github.com/groutr/conda-tools
