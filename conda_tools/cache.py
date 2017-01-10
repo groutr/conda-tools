@@ -27,6 +27,30 @@ class BadLinkError(Exception):
 class BadPathError(Exception):
     pass
 
+
+class PackagePool(object):
+    """
+    Common pool for sharing PackageInfo objects.
+    """
+    def __init__(self):
+        self._pool = {}
+
+    def register(self, pkg_obj):
+        obj_hash = hash(pkg_obj)
+        try:
+            return self._pool[obj_hash]
+        except KeyError:
+            self._pool[obj_hash] = pkg_obj
+            return pkg_obj
+
+    def update(self, pkg_obj):
+        self._pool[hash(pkg_obj)] = pkg_obj
+
+    def clear(self):
+        self._pool.clear()
+
+Pool = PackagePool()
+
 class PackageInfo(object):
     def __init__(self, path):
         """

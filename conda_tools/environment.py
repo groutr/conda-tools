@@ -5,11 +5,61 @@ from os.path import join, isdir, basename, dirname
 from functools import reduce
 
 from .common import lazyproperty, lru_cache
-from .cache import PackageInfo
+from .cache import PackageInfo, Pool as PkgPool
 from .history import History
 
 class InvalidEnvironment(Exception):
     pass
+
+
+class DictionaryPool(object):
+    """
+    Store only unique dictionaries.
+
+    Optional string interning can be enabled to as an extra memory optimization.
+    """
+    from sys import intern
+
+    def __init__(self, intern_keys=False):
+        self._pool = {}
+        self.intern_keys = intern_keys
+
+    def register(self, d):
+        d_id = id(d)
+        _pool = self._pool
+
+        try:
+            return _pool[d_id]
+        except KeyError:
+            # maybe a dict with same content in pool.
+            for _d in _pool.values():
+                if d == _d:
+                    return _d
+            
+            if self.intern_keys:
+                d = self._intern_keys(d)
+            self._pool[d_id] = d
+            return d
+    
+    def _intern_keys(self, d):
+        """
+        Intern the string keys of d
+        """
+        intern = DictionaryPool.intern
+        for k, v in d.items():
+            try:
+                d[intern(k)] = v
+            except TypeError:
+                d[k] = v
+
+            if isinstance(v, dict):
+                d[k] = self._intern_keys(v)
+        return d
+
+    def clear(self):
+        self._cache.clear()
+            
+Pool = DictionaryPool(intern_keys=True)
 
 class Environment(object):
     def __init__(self, path):
@@ -57,6 +107,10 @@ class Environment(object):
             for p in pi:
                 package_info[p.name] = p
         return package_info
+
+    def get_field(self, field):
+        self._read_package_json()
+        return {i['name']: i.get(field) for i in self._packages.values()}
 
     @lazyproperty
     def package_channels(self):
@@ -116,7 +170,7 @@ class Environment(object):
                 ltype, lsource = link['type'], link['source']
             else:
                 ltype, lsource = 'hard-link', self.path
-            result[ltype].append(PackageInfo(lsource))
+            result[ltype].append(PkgPool.register(PackageInfo(lsource)))
 
         if link_type == 'all':
             return {k: tuple(v) for k, v in result.items()}
@@ -155,7 +209,7 @@ def _load_all_json(path):
 
 def _load_json(path):
     with open(path, 'r') as fin:
-        x = json.load(fin)
+        x = Pool.register(json.load(fin))
     return x
 
 def is_conda_env(path):
