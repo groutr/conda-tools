@@ -40,3 +40,9 @@ class Repository(object):
             return (self.url == other.url) and (self.packages == other.packages)
         except:
             return False
+
+    def fetch_urls(self, pkgs):
+        base_url = self.url
+        for p in pkgs:
+            if p in self.packages:
+                yield base_url + p.filename, p.md5
