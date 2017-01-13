@@ -14,6 +14,7 @@ except:
 
 from .common import lazyproperty, lru_cache
 from .config import config
+from .compat import dkeys, ditems, dvalues
 
 class InvalidCachePackage(Exception):
     pass
@@ -275,7 +276,7 @@ class PackageArchive(object):
         Return the member(s) that match with pattern, otherwise None.
         """
         _files = {m.path: m for m in self.files()}
-        return tuple(_files[m] for m in fnfilter(_files.keys(), pattern))
+        return tuple(_files[m] for m in fnfilter(dkeys(_files), pattern))
 
     def extract(self, members, destination='.'):
         """
@@ -366,7 +367,7 @@ def correlated_cache(path):
     dirs = named_cache(path)
     ar = named_archives(path)
     result = {}
-    for d, obj in dirs.items():
+    for d, obj in ditems(dirs):
         try:
             result[d] = (obj, ar[d+'.tar.bz2'])
         except KeyError:

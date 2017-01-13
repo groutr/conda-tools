@@ -7,6 +7,8 @@ from collections import namedtuple
 from functools import update_wrapper
 from threading import RLock
 
+from .compat import ditems
+
 _CacheInfo = namedtuple("CacheInfo", ["hits", "misses", "maxsize", "currsize"])
 
 class _HashedSeq(list):
@@ -26,7 +28,7 @@ def _make_key(args, kwds, typed,
     'Make a cache key from optionally typed positional and keyword arguments'
     key = args
     if kwds:
-        sorted_items = sorted(kwds.items())
+        sorted_items = sorted(ditems(kwds))
         key += kwd_mark
         for item in sorted_items:
             key += item

@@ -29,9 +29,9 @@ else:
     items = 'items'
     values = 'values'
 
-keys = operator.methodcaller(keys)
-values = operator.methodcaller(values)
-items = operator.methodcaller(items)
+dkeys = operator.methodcaller(keys)
+dvalues = operator.methodcaller(values)
+ditems = operator.methodcaller(items)
 
 # Standard library mappings
 try:

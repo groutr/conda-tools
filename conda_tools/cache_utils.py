@@ -8,7 +8,7 @@ import hashlib
 
 from .cache import correlated_cache
 from .config import config
-
+from .compat import dvalues, ditems
 
 
 def _linked_environments(package, environments):
@@ -18,7 +18,7 @@ def _linked_environments(package, environments):
     This function is wrapped by :py:func:`linked_environments` to provide a consistent API.
     Please call :py:func:`linked_environments` instead.
     """
-    linked_envs = (env for env in environments if package in set(env.linked_packages.values()))
+    linked_envs = (env for env in environments if package in dvalues(env.linked_packages))
     return tuple(linked_envs)
 
 
@@ -37,7 +37,7 @@ def unlinked_packages(packages, environments):
     These packages should be safe to remove.
     """
     linked = linked_environments(packages, environments)
-    return tuple(pkg for pkg, env in linked.items() if not env)
+    return tuple(pkg for pkg, env in ditems(linked) if not env)
 
 
 def verify_hashes(packages, archives, hash_alg='md5'):
