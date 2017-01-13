@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 try:
     from functools import lru_cache
 except ImportError:

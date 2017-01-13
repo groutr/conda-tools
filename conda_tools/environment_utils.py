@@ -1,6 +1,7 @@
 """
 Utility functions that map information from environments onto package cache
 """
+from __future__ import print_function
 
 from os.path import join
 

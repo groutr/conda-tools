@@ -1,6 +1,7 @@
 """
 Utility functions that map information from caches onto environments
 """
+from __future__ import print_function
 
 import os
 import hashlib

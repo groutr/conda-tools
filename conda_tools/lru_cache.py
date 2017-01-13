@@ -1,6 +1,7 @@
 # Backport of Python 3.3 LRU cache by Raymond Hettinger
 # http://code.activestate.com/recipes/578078-py26-and-py30-backport-of-python-33s-lru-cache/
 # Licensed under MIT license
+from __future__ import print_function
 
 from collections import namedtuple
 from functools import update_wrapper

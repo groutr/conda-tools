@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import json
 import os
 import bz2
@@ -49,7 +51,7 @@ class PackagePool(object):
     def clear(self):
         self._pool.clear()
 
-Pool = PackagePool()
+Pool = PackagePool()  
 
 class PackageInfo(object):
     def __init__(self, path):
