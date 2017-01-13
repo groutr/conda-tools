@@ -1,7 +1,16 @@
+
+PACKAGE_FIELDS = (
+    'build', 'build_number', 'date', 'date', 'depends', 'requires',
+    'license', 'license_family', 'md5', 'size', 'version', 'name'
+)
+
 class RepoPackage(object):
+    __slots__ = ('filename',) + PACKAGE_FIELDS    
     def __init__(self, filename, info):
         self.filename = filename
-        self.__dict__.update(info)
+
+        for field in PACKAGE_FIELDS:
+            setattr(self, field, info.get(field))
 
     def __hash__(self):
         return hash(self.md5)
