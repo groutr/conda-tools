@@ -1,3 +1,12 @@
+from __future__ import print_function
+
+import bz2
+from json import loads
+from os.path import join
+
+
+from .compat import ditems, urlopen
+
 
 PACKAGE_FIELDS = (
     'build', 'build_number', 'date', 'date', 'depends', 'requires',
@@ -23,7 +32,7 @@ class RepoPackage(object):
 
 
 def repo_packages(d):
-    return set(RepoPackage(*info) for info in d.items())
+    return set(RepoPackage(*info) for info in ditems(d))
 
 class Repository(object):
     def __init__(self, url, data):
@@ -46,3 +55,16 @@ class Repository(object):
         for p in pkgs:
             if p in self.packages:
                 yield base_url + p.filename, p.md5
+
+def get_repo(url, platform=None):
+    if platform is not None:
+        ch_url = join(url, platform)
+    else:
+        ch_url = url
+
+    x = urlopen(join(ch_url, 'repodata.json.bz2'))
+    x = bz2.decompress(x.read())
+    
+    repo_json = loads(x.decode('utf8'))
+    return Repository(ch_url, repo_json)
+
