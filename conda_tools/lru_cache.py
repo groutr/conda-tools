@@ -1,10 +1,13 @@
 # Backport of Python 3.3 LRU cache by Raymond Hettinger
 # http://code.activestate.com/recipes/578078-py26-and-py30-backport-of-python-33s-lru-cache/
 # Licensed under MIT license
+from __future__ import print_function
 
 from collections import namedtuple
 from functools import update_wrapper
 from threading import RLock
+
+from .compat import ditems
 
 _CacheInfo = namedtuple("CacheInfo", ["hits", "misses", "maxsize", "currsize"])
 
@@ -25,7 +28,7 @@ def _make_key(args, kwds, typed,
     'Make a cache key from optionally typed positional and keyword arguments'
     key = args
     if kwds:
-        sorted_items = sorted(kwds.items())
+        sorted_items = sorted(ditems(kwds))
         key += kwd_mark
         for item in sorted_items:
             key += item

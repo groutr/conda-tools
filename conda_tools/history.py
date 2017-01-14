@@ -2,6 +2,8 @@
 Adapted from conda/history.py
 Licensed under BSD 3-clause license.
 """
+from __future__ import print_function
+
 
 import re
 import time

@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import os
 import json
 import pprint
@@ -7,6 +9,7 @@ from functools import reduce
 from .common import lazyproperty, lru_cache
 from .cache import PackageInfo, Pool as PkgPool
 from .history import History
+from .compat import dvalues, ditems
 
 class InvalidEnvironment(Exception):
     pass
@@ -32,7 +35,7 @@ class DictionaryPool(object):
             return _pool[d_id]
         except KeyError:
             # maybe a dict with same content in pool.
-            for _d in _pool.values():
+            for _d in dvalues(_pool):
                 if d == _d:
                     return _d
             
@@ -46,7 +49,7 @@ class DictionaryPool(object):
         Intern the string keys of d
         """
         intern = DictionaryPool.intern
-        for k, v in d.items():
+        for k, v in ditems(d):
             try:
                 d[intern(k)] = v
             except TypeError:
@@ -103,14 +106,14 @@ class Environment(object):
         List all packages linked into the environment.
         """
         package_info = {}
-        for pi in self._link_type_packages(link_type='all').values():
+        for pi in dvalues(self._link_type_packages(link_type='all')):
             for p in pi:
                 package_info[p.name] = p
         return package_info
 
     def get_field(self, field):
         self._read_package_json()
-        return {i['name']: i.get(field) for i in self._packages.values()}
+        return {i['name']: i.get(field) for i in dvalues(self._packages)}
 
     @lazyproperty
     def package_channels(self):
@@ -119,7 +122,7 @@ class Environment(object):
         """
         self._read_package_json()
         result = {}
-        for i in self._packages.values():
+        for i in dvalues(self._packages):
             result[i['name']] = i.get('channel', '')
         return result
 
@@ -129,7 +132,7 @@ class Environment(object):
         List all package specs in the environment.
         """
         self._read_package_json()
-        json_objs = self._packages.values()
+        json_objs = dvalues(self._packages)
         specs = []
         for i in json_objs:
             p, v, b = i['name'], i['version'], i['build']
@@ -150,7 +153,7 @@ class Environment(object):
 
     @property
     def packages(self):
-        return tuple(reduce(tuple.__add__, self._link_type_packages('all').values()))
+        return tuple(reduce(tuple.__add__, dvalues(self._link_type_packages('all'))))
 
     @lru_cache(maxsize=4)
     def _link_type_packages(self, link_type='all'):
@@ -164,7 +167,7 @@ class Environment(object):
             raise ValueError('link_type must be hard-link, soft-link, copy, or all')
 
         result = {'hard-link': [], 'soft-link': [], 'copy': []}
-        for i in self._packages.values():
+        for i in dvalues(self._packages):
             link = i.get('link')
             if link:
                 ltype, lsource = link['type'], link['source']
@@ -173,7 +176,7 @@ class Environment(object):
             result[ltype].append(PkgPool.register(PackageInfo(lsource)))
 
         if link_type == 'all':
-            return {k: tuple(v) for k, v in result.items()}
+            return {k: tuple(v) for k, v in ditems(result)}
         else:
             return tuple(result[link_type])
 
