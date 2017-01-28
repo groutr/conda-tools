@@ -7,6 +7,7 @@ except ImportError:
 
 from functools import wraps
 
+from .compat import ditems, dvalues, intern
 
 class lazyproperty(object):
     def __init__(self, func):
@@ -28,3 +29,18 @@ class lazyproperty(object):
 
     def __set__(self, instance, value):
         raise AttributeError('Cannot set read-only attribute on {}'.format(type(instance)))
+
+
+def intern_keys(d):
+    """
+    Intern the string keys of d
+    """
+    for k, v in ditems(d):
+        try:
+            d[intern(k)] = v
+        except TypeError:
+            d[k] = v
+
+        if isinstance(v, dict):
+            d[k] = intern_keys(v)
+    return d

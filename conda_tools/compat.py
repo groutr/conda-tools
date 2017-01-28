@@ -11,6 +11,7 @@ if PY2:
     
     reduce = reduce
     range = xrange
+    intern = intern
 
     keys = 'viewkeys'
     items = 'viewitems'
@@ -22,6 +23,7 @@ else:
     zip = zip
 
     from functools import reduce
+    intern = sys.intern
 
     range = range
 
