@@ -41,9 +41,13 @@ def check_hardlinked_pkg(env, Pkg):
 
     Returns a list of improperly hardlinked files.
     """
+    if Pkg not in env.packages:
+        raise ValueError
 
     bad_linked = []
     for f in Pkg.files:
+        if f in Pkg.has_prefix:
+            continue
         src = join(Pkg.path, f)
         tgt = join(env.path, f)
         if not is_hardlinked(src, tgt):
