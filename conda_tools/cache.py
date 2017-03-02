@@ -14,7 +14,7 @@ except:
 
 from .common import lazyproperty, lru_cache
 from .config import config
-from .compat import dkeys, ditems, dvalues
+from .compat import dkeys, ditems, dvalues, intern
 
 class InvalidCachePackage(Exception):
     pass
@@ -69,7 +69,8 @@ class PackageInfo(object):
         else:
             raise InvalidCachePackage("{} does not exist".format(self._info))
 
-        
+        self.binary_prefix = None
+        self.text_prefix = None
 
     @lru_cache(maxsize=16)
     def __getattr__(self, name):
@@ -83,6 +84,39 @@ class PackageInfo(object):
             return self.__dict__[name]
         elif name in self.index:
             return self.index[name]
+
+    @lazyproperty
+    def has_prefix(self):
+        """
+        Parse and return info/has_prefix
+        """
+        prefixed = {}
+        binary_prefix = None
+        text_prefix = None
+        with open(join(self._info, 'has_prefix'), 'r') as f:
+            for pf in f:
+                prefix, ftype, fname = pf.split()
+                if ftype == 'binary':
+                    binary_prefix = prefix
+                elif ftype == 'text':
+                    text_prefix = prefix
+                prefixed[fname] = ftype
+        self.binary_prefix = intern(binary_prefix)
+        self.text_prefix = intern(text_prefix)
+        return prefixed
+
+    @lazyproperty
+    def paths(self):
+        """
+        Return contents of info/paths.json
+        """
+        paths_json = join(self._info, 'paths.json')
+        if exists(paths_json):
+            with open(join(self._info, 'paths.json'), 'r') as f:
+                paths = json.load(f)
+            return paths
+        return {}
+
 
     @lazyproperty
     def index(self):
