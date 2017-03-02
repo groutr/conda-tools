@@ -155,6 +155,8 @@ class Environment(object):
         """
         self._read_package_json()
 
+        lut = {1: 'hard-link', 2: 'soft-link', 3: 'copy',
+                'hard-link': 'hard-link', 'soft-link': 'soft-link', 'copy': 'copy'}
         result = {'hard-link': [], 'soft-link': [], 'copy': []}
         for i in dvalues(self._packages):
             link = i.get('link')
@@ -163,10 +165,8 @@ class Environment(object):
             else:
                 ltype, lsource = 'hard-link', self.path
 
-            try:
-                result[LINK_TYPE[ltype]].append(PkgPool.register(PackageInfo(lsource)))
-            except KeyError:
-                result[ltype].append(PkgPool.register(PackageInfo(lsource)))
+            pkg_info = PkgPool.register(PackageInfo(lsource))
+            result[lut[ltype]].append(pkg_info)
 
         if link_type == 'all':
             return {k: tuple(v) for k, v in ditems(result)}
