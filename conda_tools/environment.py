@@ -3,13 +3,15 @@ from __future__ import print_function
 import os
 import json
 import pprint
+from operator import itemgetter
 from os.path import join, isdir, basename, dirname
-from functools import reduce
 
-from .common import lazyproperty, lru_cache
+from .common import lazyproperty, lru_cache, intern_keys
 from .cache import PackageInfo, Pool as PkgPool
 from .history import History
-from .compat import dvalues, ditems
+from .compat import dvalues, ditems, reduce
+from .constants import LINK_TYPE
+from .foreign import groupby
 
 class InvalidEnvironment(Exception):
     pass
@@ -21,11 +23,9 @@ class DictionaryPool(object):
 
     Optional string interning can be enabled to as an extra memory optimization.
     """
-    from sys import intern
-
     def __init__(self, intern_keys=False):
         self._pool = {}
-        self.intern_keys = intern_keys
+        self._intern_keys = intern_keys
 
     def register(self, d):
         d_id = id(d)
@@ -39,25 +39,10 @@ class DictionaryPool(object):
                 if d == _d:
                     return _d
             
-            if self.intern_keys:
-                d = self._intern_keys(d)
+            if self._intern_keys:
+                d = intern_keys(d)
             self._pool[d_id] = d
             return d
-    
-    def _intern_keys(self, d):
-        """
-        Intern the string keys of d
-        """
-        intern = DictionaryPool.intern
-        for k, v in ditems(d):
-            try:
-                d[intern(k)] = v
-            except TypeError:
-                d[k] = v
-
-            if isinstance(v, dict):
-                d[k] = self._intern_keys(v)
-        return d
 
     def clear(self):
         self._cache.clear()
@@ -99,6 +84,12 @@ class Environment(object):
             return True
         return False
 
+    def groupby(self, key):
+        """
+        Group packages by key.
+        """
+        self._read_package_json()
+        return groupby(key, dvalues(self._packages))
 
     @lazyproperty
     def linked_packages(self):
@@ -163,9 +154,9 @@ class Environment(object):
         If *link_type=all*, then the dictionary returned is keyed by the type of linking
         """
         self._read_package_json()
-        if link_type not in {'hard-link', 'soft-link', 'copy', 'all'}:
-            raise ValueError('link_type must be hard-link, soft-link, copy, or all')
 
+        lut = {1: 'hard-link', 2: 'soft-link', 3: 'copy',
+                'hard-link': 'hard-link', 'soft-link': 'soft-link', 'copy': 'copy'}
         result = {'hard-link': [], 'soft-link': [], 'copy': []}
         for i in dvalues(self._packages):
             link = i.get('link')
@@ -173,7 +164,9 @@ class Environment(object):
                 ltype, lsource = link['type'], link['source']
             else:
                 ltype, lsource = 'hard-link', self.path
-            result[ltype].append(PkgPool.register(PackageInfo(lsource)))
+
+            pkg_info = PkgPool.register(PackageInfo(lsource))
+            result[lut[ltype]].append(pkg_info)
 
         if link_type == 'all':
             return {k: tuple(v) for k, v in ditems(result)}
@@ -199,6 +192,26 @@ class Environment(object):
     def __str__(self):
         return 'Environment: {}'.format(self.name)
 
+
+def update_values(d):
+    """
+    Map values in d forward across variations of file format
+
+    Ex. link/type changed from string to enum in recent version of conda
+
+    There should be a more elegant solution.  This is pretty hacked.
+    """
+    
+    #update link/type values
+    try:
+        val = d['link']['type']
+        d['link']['type'] = LINK_TYPE[val]
+    except KeyError:
+        pass
+
+    return d
+
+
 def _load_all_json(path):
     """
     Load all json files in a directory.  Return dictionary with filenames mapped to json dictionaries.
@@ -207,7 +220,7 @@ def _load_all_json(path):
     result = {}
     for f in files:
         if f.endswith('.json'):
-            result[f] = _load_json(join(root, f))
+            result[f] = update_values(_load_json(join(root, f)))
     return result
 
 def _load_json(path):

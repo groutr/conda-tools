@@ -8,7 +8,7 @@ from os.path import join
 from .environment import Environment, environments
 from .cache import PackageInfo
 from .utils import is_hardlinked
-from .compat import ditems
+from .compat import ditems, dkeys
 
 
 def hard_linked(env):
@@ -41,9 +41,12 @@ def check_hardlinked_pkg(env, Pkg):
 
     Returns a list of improperly hardlinked files.
     """
+    if Pkg not in env.packages:
+        raise ValueError
 
     bad_linked = []
-    for f in Pkg.files:
+    expected_linked = Pkg.files - dkeys(Pkg.has_prefix) - Pkg.no_link
+    for f in expected_linked:
         src = join(Pkg.path, f)
         tgt = join(env.path, f)
         if not is_hardlinked(src, tgt):
