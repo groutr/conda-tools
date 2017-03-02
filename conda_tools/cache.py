@@ -112,10 +112,22 @@ class PackageInfo(object):
         """
         paths_json = join(self._info, 'paths.json')
         if exists(paths_json):
-            with open(join(self._info, 'paths.json'), 'r') as f:
+            with open(paths_json, 'r') as f:
                 paths = json.load(f)
             return paths
         return {}
+
+    @lazyproperty
+    def no_link(self):
+        """
+        Return contents of no_link
+        """
+        nolinked = join(self._info, 'no_link')
+        if exists(nolinked):
+            with open(nolinked, 'r') as f:
+                x = map(str.strip, f.readlines())
+            return frozenset(x)
+        return frozenset()
 
 
     @lazyproperty
