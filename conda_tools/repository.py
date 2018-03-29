@@ -21,8 +21,16 @@ class RepoPackage(object):
         for field in PACKAGE_FIELDS:
             setattr(self, field, info.get(field))
 
+        if hasattr(self, 'sha256'):
+            self.hashfield = self.sha256
+        else:
+            self.hashfield = self.md5
+
     def __hash__(self):
-        return hash(self.md5)
+        return hash(self.hashfield)
+
+    def __eq__(self):
+        return self.hashfield
 
     def __repr__(self):
         return 'RepoPackage({})'.format(self.filename)
@@ -37,8 +45,7 @@ def repo_packages(d):
 class Repository(object):
     def __init__(self, url, data):
         self.url = url
-        self.arch = data['info']['arch']
-        self.platform = data['info']['platform']
+        self.subdir = data['info']['subdir']
         self.packages = repo_packages(data['packages'])
 
     def __repr__(self):
