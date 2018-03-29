@@ -10,7 +10,7 @@ from .compat import ditems, urlopen
 
 PACKAGE_FIELDS = (
     'build', 'build_number', 'date', 'date', 'depends', 'requires',
-    'license', 'license_family', 'md5', 'size', 'version', 'name'
+    'license', 'license_family', 'md5', 'size', 'version', 'name', 'sha256'
 )
 
 class RepoPackage(object):
@@ -21,16 +21,12 @@ class RepoPackage(object):
         for field in PACKAGE_FIELDS:
             setattr(self, field, info.get(field))
 
-        if hasattr(self, 'sha256'):
-            self.hashfield = self.sha256
-        else:
-            self.hashfield = self.md5
-
     def __hash__(self):
-        return hash(self.hashfield)
+        return hash(self.sha256)
 
-    def __eq__(self):
-        return self.hashfield
+    def __eq__(self, other):
+        if self.__class__ == other.__class__:
+            return self.sha256 == other.sha256
 
     def __repr__(self):
         return 'RepoPackage({})'.format(self.filename)
@@ -61,7 +57,7 @@ class Repository(object):
         base_url = self.url
         for p in pkgs:
             if p in self.packages:
-                yield base_url + p.filename, p.md5
+                yield join(base_url, p.filename), p.sha256
 
 def get_repo(url, platform=None):
     if platform is not None:
