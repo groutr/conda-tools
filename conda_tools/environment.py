@@ -132,15 +132,15 @@ class Environment(object):
 
     @property
     def hard_linked(self):
-        return self._link_type_packages('hard-link')
+        return self._link_type_packages(LINK_TYPE.hardlink)
     
     @property
     def soft_linked(self):
-        return self._link_type_packages('soft-link')
+        return self._link_type_packages(LINK_TYPE.softlink)
 
     @property
     def copy_linked(self):
-        return self._link_type_packages('copy')
+        return self._link_type_packages(LINK_TYPE.copy)
 
     @property
     def packages(self):
@@ -155,18 +155,18 @@ class Environment(object):
         """
         self._read_package_json()
 
-        lut = {1: 'hard-link', 2: 'soft-link', 3: 'copy',
-                'hard-link': 'hard-link', 'soft-link': 'soft-link', 'copy': 'copy'}
-        result = {'hard-link': [], 'soft-link': [], 'copy': []}
+        result = {LINK_TYPE.hardlink: [], 
+                  LINK_TYPE.softlink: [], 
+                  LINK_TYPE.copy: []}
         for i in dvalues(self._packages):
             link = i.get('link')
             if link:
-                ltype, lsource = link['type'], link['source']
+                ltype, lsource = LINK_TYPE(link['type']), link['source']
             else:
-                ltype, lsource = 'hard-link', self.path
+                ltype, lsource = LINK_TYPE.hardlink, self.path
 
             pkg_info = PkgPool.register(PackageInfo(lsource))
-            result[lut[ltype]].append(pkg_info)
+            result[ltype].append(pkg_info)
 
         if link_type == 'all':
             return {k: tuple(v) for k, v in ditems(result)}
