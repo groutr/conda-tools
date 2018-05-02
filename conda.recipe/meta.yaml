@@ -12,9 +12,11 @@ build:
 requirements:
   build:
     - python
+    - enum34   [py<3]
   run:
     - python
     - pathlib2   [py<3]
+    - enum34     [py<3]
 
 about:
   home: https://github.com/groutr/conda-tools
