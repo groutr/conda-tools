@@ -257,10 +257,12 @@ def named_environments(path):
     """
     return {e.name: e for e in environments(path)}
 
-def active_environment(path):
+def active_environment():
     """
     Return the active environment.
     """
-    for x in environments(path):
-        if x.activated():
-            return x
+    try:
+        prefix = os.environ['CONDA_PREFIX']
+        return Environment(prefix)
+    except KeyError:
+        raise InvalidEnvironment("No environment seems to be currently active")
