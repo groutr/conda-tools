@@ -101,8 +101,12 @@ class PackageInfo(object):
                 elif ftype == 'text':
                     text_prefix = prefix
                 prefixed[fname] = ftype
-        self.binary_prefix = intern(binary_prefix)
-        self.text_prefix = intern(text_prefix)
+        if binary_prefix:
+            binary_prefix = intern(binary_prefix)
+        if text_prefix:
+            text_prefix = intern(text_prefix)
+        self.binary_prefix = binary_prefix
+        self.text_prefix = text_prefix
         return prefixed
 
     @lazyproperty
