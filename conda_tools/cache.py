@@ -93,14 +93,16 @@ class PackageInfo(object):
         prefixed = {}
         binary_prefix = None
         text_prefix = None
-        with open(join(self._info, 'has_prefix'), 'r') as f:
-            for pf in f:
-                prefix, ftype, fname = pf.split()
-                if ftype == 'binary':
-                    binary_prefix = prefix
-                elif ftype == 'text':
-                    text_prefix = prefix
-                prefixed[fname] = ftype
+        has_prefix_file = join(self._info, 'has_prefix')
+        if exists(has_prefix_file):
+            with open(has_prefix_file, 'r') as f:
+                for pf in f:
+                    prefix, ftype, fname = pf.split()
+                    if ftype == 'binary':
+                        binary_prefix = prefix
+                    elif ftype == 'text':
+                        text_prefix = prefix
+                    prefixed[fname] = ftype
         if binary_prefix:
             binary_prefix = intern(binary_prefix)
         if text_prefix:
