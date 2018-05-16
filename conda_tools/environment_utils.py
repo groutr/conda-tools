@@ -9,13 +9,14 @@ from .environment import Environment, environments
 from .cache import PackageInfo
 from .utils import is_hardlinked
 from .compat import ditems, dkeys
+from .constants import LINK_TYPE
 
 
 def hard_linked(env):
     """
     Return dictionary of all packages (as PackageInfo instances) that are hard-linked into *env*
     """
-    return {p.name: p for p in env._link_type_packages(link_type='hard-link')}
+    return {p.name: p for p in env._link_type_packages(link_type=LINK_TYPE.hardlink)}
 
 def check_hardlinked_env(env):
     """
