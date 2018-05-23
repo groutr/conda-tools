@@ -10,7 +10,7 @@ from .common import lazyproperty, lru_cache, intern_keys
 from .cache import PackageInfo, Pool as PkgPool
 from .history import History
 from .compat import dvalues, ditems, reduce
-from .constants import LINK_TYPE
+from .constants import cast_link_type, LINK_TYPE
 from .foreign import groupby
 
 class InvalidEnvironment(Exception):
@@ -153,6 +153,12 @@ class Environment(object):
         
         If *link_type=all*, then the dictionary returned is keyed by the type of linking
         """
+        def _compat_link_type(link_type):
+            if isinstance(link_type, int):
+                return LINK_TYPE(link_type)
+            else:
+                return getattr(LINK_TYPE, link_type)
+                
         self._read_package_json()
 
         result = {LINK_TYPE.hardlink: [], 
@@ -161,7 +167,7 @@ class Environment(object):
         for i in dvalues(self._packages):
             link = i.get('link')
             if link:
-                ltype, lsource = LINK_TYPE(link['type']), link['source']
+                ltype, lsource = cast_link_type(link['type']), link['source']
             else:
                 ltype, lsource = LINK_TYPE.hardlink, self.path
 
