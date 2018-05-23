@@ -2,9 +2,18 @@ from __future__ import print_function
 
 import stat
 import platform
-from os.path import exists
-from os import lstat, error
+from collections import defaultdict
+from os.path import exists, join
+from os import lstat, error, walk
 
+def index_inodes(root):
+    index = defaultdict(list)
+    for root, dirs, files in walk(root):
+        for f in files:
+            path = join(root, f)
+            fstat = lstat(path)
+            index[(fstat.st_dev, fstat.st_ino)].append(path)
+    return dict(index)
 
 def is_hardlinked(f1, f2):
     """
