@@ -41,8 +41,8 @@ def repo_packages(d):
 class Repository(object):
     def __init__(self, url, data):
         self.url = url
-        self.subdir = data['info']['subdir']
-        self.packages = repo_packages(data['packages'])
+        self.info = data['info']
+        self.packages = data['packages']
 
     def __repr__(self):
         return 'Repository({})'.format(self.url)
