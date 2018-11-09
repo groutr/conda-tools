@@ -1,12 +1,10 @@
 from collections import defaultdict
 from operator import itemgetter
 
-from .compat import ditems
-
 # From http://toolz.readthedocs.io/en/latest/_modules/toolz/itertoolz.html#groupby
 # Vendored here to avoid dependency
 def groupby(key, seq):
-    """ 
+    """
     From toolz.itertoolz:
     Group a collection by a key function
 
@@ -35,7 +33,4 @@ def groupby(key, seq):
     d = defaultdict(lambda: [].append)
     for item in seq:
         d[key(item)](item)
-    rv = {}
-    for k, v in ditems(d):
-        rv[k] = v.__self__
-    return rv
+    return {k: v.__self__ for k, v in d.items()}

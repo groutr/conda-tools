@@ -3,15 +3,15 @@ from __future__ import print_function
 import os
 import json
 import pprint
+from functools import lru_cache, reduce
 from operator import itemgetter
 from os.path import join, isdir, basename, dirname
 
-from .common import lazyproperty, lru_cache, intern_keys
-from .cache import PackageInfo, Pool as PkgPool
+from ..common import lazyproperty, intern_keys
+from ..cache.package import Package, Pool as PkgPool
 from .history import History
-from .compat import dvalues, ditems, reduce
-from .constants import cast_link_type, LINK_TYPE
-from .foreign import groupby
+from ..constants import cast_link_type, LINK_TYPE
+from ..foreign import groupby
 
 class InvalidEnvironment(Exception):
     pass
@@ -35,18 +35,18 @@ class DictionaryPool(object):
             return _pool[d_id]
         except KeyError:
             # maybe a dict with same content in pool.
-            for _d in dvalues(_pool):
+            for _d in _pool.values():
                 if d == _d:
                     return _d
-            
+
             if self._intern_keys:
                 d = intern_keys(d)
             self._pool[d_id] = d
             return d
 
     def clear(self):
-        self._cache.clear()
-            
+        self._pool.clear()
+
 Pool = DictionaryPool(intern_keys=True)
 
 class Environment(object):
@@ -89,7 +89,7 @@ class Environment(object):
         Group packages by key.
         """
         self._read_package_json()
-        return groupby(key, dvalues(self._packages))
+        return groupby(key, self._packages.values())
 
     @lazyproperty
     def linked_packages(self):
@@ -97,14 +97,14 @@ class Environment(object):
         List all packages linked into the environment.
         """
         package_info = {}
-        for pi in dvalues(self._link_type_packages(link_type='all')):
+        for pi in self._link_type_packages(link_type='all').values():
             for p in pi:
                 package_info[p.name] = p
         return package_info
 
     def get_field(self, field):
         self._read_package_json()
-        return {i['name']: i.get(field) for i in dvalues(self._packages)}
+        return {i['name']: i.get(field) for i in self._packages.values()}
 
     @lazyproperty
     def package_channels(self):
@@ -113,7 +113,7 @@ class Environment(object):
         """
         self._read_package_json()
         result = {}
-        for i in dvalues(self._packages):
+        for i in self._packages.values():
             result[i['name']] = i.get('channel', '')
         return result
 
@@ -123,9 +123,8 @@ class Environment(object):
         List all package specs in the environment.
         """
         self._read_package_json()
-        json_objs = dvalues(self._packages)
         specs = []
-        for i in json_objs:
+        for i in self._packages.values():
             p, v, b = i['name'], i['version'], i['build']
             specs.append('{}-{}-{}'.format(p, v, b))
         return tuple(specs)
@@ -133,7 +132,7 @@ class Environment(object):
     @property
     def hard_linked(self):
         return self._link_type_packages(LINK_TYPE.hardlink)
-    
+
     @property
     def soft_linked(self):
         return self._link_type_packages(LINK_TYPE.softlink)
@@ -144,13 +143,13 @@ class Environment(object):
 
     @property
     def packages(self):
-        return tuple(reduce(tuple.__add__, dvalues(self._link_type_packages('all'))))
+        return tuple(reduce(tuple.__add__, self._link_type_packages('all').values()))
 
     @lru_cache(maxsize=4)
     def _link_type_packages(self, link_type='all'):
         """
         Return all PackageInfo objects that are linked into the environment.
-        
+
         If *link_type=all*, then the dictionary returned is keyed by the type of linking
         """
         def _compat_link_type(link_type):
@@ -158,24 +157,24 @@ class Environment(object):
                 return LINK_TYPE(link_type)
             else:
                 return getattr(LINK_TYPE, link_type)
-                
+
         self._read_package_json()
 
-        result = {LINK_TYPE.hardlink: [], 
-                  LINK_TYPE.softlink: [], 
+        result = {LINK_TYPE.hardlink: [],
+                  LINK_TYPE.softlink: [],
                   LINK_TYPE.copy: []}
-        for i in dvalues(self._packages):
+        for i in self._packages.values():
             link = i.get('link')
             if link:
                 ltype, lsource = cast_link_type(link['type']), link['source']
             else:
                 ltype, lsource = LINK_TYPE.hardlink, self.path
 
-            pkg_info = PkgPool.register(PackageInfo(lsource))
+            pkg_info = PkgPool.register(Package(lsource))
             result[ltype].append(pkg_info)
 
         if link_type == 'all':
-            return {k: tuple(v) for k, v in ditems(result)}
+            return {k: tuple(v) for k, v in result.items()}
         else:
             return tuple(result[link_type])
 
@@ -207,7 +206,7 @@ def update_values(d):
 
     There should be a more elegant solution.  This is pretty hacked.
     """
-    
+
     #update link/type values
     try:
         val = d['link']['type']

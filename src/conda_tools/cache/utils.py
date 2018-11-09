@@ -6,9 +6,67 @@ from __future__ import print_function
 import os
 import hashlib
 
-from .cache import correlated_cache
-from .config import config
-from .compat import dvalues, ditems
+from .package import Package, InvalidCachePackage
+from .archive import PackageArchive
+from ..config import config
+
+def packages(path, verbose=False):
+    """
+    Collect and return a sequence of PackageInfo instances that represent
+    each extracted package in the package cache, *path*.
+    """
+    if not os.path.isdir(path):
+        raise IOError('{} cache should be a directory path!'.format(path))
+
+    cache = os.walk(path, topdown=True)
+    root, dirs, _ = next(cache)
+    for d in dirs:
+        try:
+            yield Package(os.path.join(root, d))
+        except InvalidCachePackage:
+            if verbose:
+                print("Skipping {}".format(d))
+            continue
+
+def named_cache(path):
+    """
+    Return dictionary of cache with `(package name, package version)` mapped to cache entry.
+    This is a simple convenience wrapper around :py:func:`packages`.
+    """
+    return {os.path.split(x.path)[1]: x for x in packages(path)}
+
+
+
+def archives(path):
+    """
+    Return a tuple of package archives
+    """
+    if not os.path.isdir(path):
+        raise IOError('{} cache should be a directory path!'.format(path))
+
+    cache = os.walk(path, topdown=True)
+    root, _, files = next(cache)
+    for f in files:
+        try:
+            if f.endswith('.tar.bz2'):
+                yield PackageArchive(os.path.join(root, f))
+        except InvalidCachePackage:
+            continue
+
+def named_archives(path):
+    return {os.path.split(x.path)[1]: x for x in archives(path)}
+
+def correlated_cache(path):
+    dirs = named_cache(path)
+    ar = named_archives(path)
+    result = {}
+    for d, obj in dirs.items():
+        try:
+            result[d] = (obj, ar[d+'.tar.bz2'])
+        except KeyError:
+            continue
+    return result
+
 
 
 def _linked_environments(package, environments):
@@ -18,16 +76,14 @@ def _linked_environments(package, environments):
     This function is wrapped by :py:func:`linked_environments` to provide a consistent API.
     Please call :py:func:`linked_environments` instead.
     """
-    linked_envs = (env for env in environments if package in dvalues(env.linked_packages))
-    return tuple(linked_envs)
+    return tuple(env for env in environments if package in env.linked_packages.values())
 
 
 def linked_environments(packages, environments):
     """
     Return a dictionary that maps each package in *packages* to all of its linked environments
     """
-    result = {p: _linked_environments(p, environments) for p in packages}
-    return result
+    return {p: _linked_environments(p, environments) for p in packages}
 
 
 def unlinked_packages(packages, environments):
@@ -37,7 +93,7 @@ def unlinked_packages(packages, environments):
     These packages should be safe to remove.
     """
     linked = linked_environments(packages, environments)
-    return tuple(pkg for pkg, env in ditems(linked) if not env)
+    return tuple(pkg for pkg, env in linked.items() if not env)
 
 
 def verify_hashes(packages, archives, hash_alg='md5'):
@@ -66,7 +122,7 @@ def verify_hashes(packages, archives, hash_alg='md5'):
         for tarinfo in ar:
             th, fh = _new_hasher(), _new_hasher()
             tfile = next(ar.extract(tarinfo, destination=None))
-            
+
             fpath = os.path.join(pk.path, tarinfo.path)
             if not os.path.exists(fpath):
                 return False
@@ -84,12 +140,3 @@ def verify_hashes(packages, archives, hash_alg='md5'):
                 print("Mismathed hash: {}".format(tarinfo.path))
                 return False
     return True
-             
-
-            
-
-
-    
-
-
-

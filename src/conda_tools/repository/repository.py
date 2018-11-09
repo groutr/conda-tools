@@ -3,22 +3,20 @@ from __future__ import print_function
 import bz2
 from json import loads
 from os.path import join
+from urllib.request import urlopen
 
-
-from .compat import ditems, urlopen
-
-
-PACKAGE_FIELDS = (
-    'build', 'build_number', 'date', 'date', 'depends', 'requires',
-    'license', 'license_family', 'md5', 'size', 'version', 'name', 'sha256'
-)
 
 class RepoPackage(object):
-    __slots__ = ('filename',) + PACKAGE_FIELDS    
+    PACKAGE_FIELDS = (
+    'build', 'build_number', 'date', 'depends', 'requires',
+    'license', 'license_family', 'md5', 'size', 'version', 'name', 'sha256'
+    )
+    __slots__ = ('filename',) + PACKAGE_FIELDS
+
     def __init__(self, filename, info):
         self.filename = filename
 
-        for field in PACKAGE_FIELDS:
+        for field in self.PACKAGE_FIELDS:
             setattr(self, field, info.get(field))
 
     def __hash__(self):
@@ -36,7 +34,7 @@ class RepoPackage(object):
 
 
 def repo_packages(d):
-    return set(RepoPackage(*info) for info in ditems(d))
+    return set(RepoPackage(*info) for info in d.items())
 
 class Repository(object):
     def __init__(self, url, data):
@@ -67,7 +65,6 @@ def get_repo(url, platform=None):
 
     x = urlopen(join(ch_url, 'repodata.json.bz2'))
     x = bz2.decompress(x.read())
-    
+
     repo_json = loads(x.decode('utf8'))
     return Repository(ch_url, repo_json)
-

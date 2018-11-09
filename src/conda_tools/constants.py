@@ -1,7 +1,5 @@
-try:
-    import enum
-except ImportError:
-    import enum34 as enum
+import enum
+
 
 class LINK_TYPE(enum.Enum):
     hardlink = 1
@@ -9,17 +7,13 @@ class LINK_TYPE(enum.Enum):
     copy = 3
     directory = 4
 
+_LINK_MAP = {'hard-link': LINK_TYPE.hardlink,
+            'soft-link': LINK_TYPE.softlink,
+            'copy': LINK_TYPE.copy,
+            'directory': LINK_TYPE.directory}
+
 def cast_link_type(value):
     if isinstance(value, str):
-        if value == 'hard-link':
-            return LINK_TYPE.hardlink
-        elif value == 'soft-link':
-            return LINK_TYPE.softlink
-        elif value == 'copy':
-            return LINK_TYPE.copy
-        elif value == 'directory':
-            return LINK_TYPE.directory
-        else:
-            raise ValueError("Unknown value: " + value)
+        return _LINK_MAP[value]
     else:
         return LINK_TYPE(value)

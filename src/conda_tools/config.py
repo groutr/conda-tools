@@ -13,6 +13,4 @@ def load_config(path):
 
 def save_config(path, config):
     with open(path, 'w') as cout:
-        json.dump(cout)
-
-
+        json.dump(config, cout)

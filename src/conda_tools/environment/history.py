@@ -9,8 +9,9 @@ import re
 import time
 from json import loads
 from os.path import isfile, join
+from functools import lru_cache
 
-from .common import lazyproperty, lru_cache
+from ..common import lazyproperty
 
 class CondaHistoryException(Exception):
     pass
@@ -221,7 +222,6 @@ class History(object):
 
         def __repr__(self):
             return 'History({}) @ {}'.format(self.path, hex(id(self)))
-        
+
         def __str__(self):
             return 'History({})'.format(self.path)
-

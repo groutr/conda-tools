@@ -6,10 +6,9 @@ from __future__ import print_function
 from os.path import join
 
 from .environment import Environment, environments
-from .cache import PackageInfo
+from ..cache.package import Package
 from .utils import is_hardlinked
-from .compat import ditems, dkeys
-from .constants import LINK_TYPE
+from ..constants import LINK_TYPE
 
 
 def hard_linked(env):
@@ -22,7 +21,7 @@ def check_hardlinked_env(env):
     """
     Check all hardlinked packages in env
     """
-    return {k: check_hardlinked_pkg(env, v) for k, v in ditems(hard_linked(env))}
+    return {k: check_hardlinked_pkg(env, v) for k, v in hard_linked(env).items()}
 
 
 def owns(env, path):
@@ -46,7 +45,7 @@ def check_hardlinked_pkg(env, Pkg):
         raise ValueError
 
     bad_linked = []
-    expected_linked = Pkg.files - dkeys(Pkg.has_prefix) - Pkg.no_link
+    expected_linked = Pkg.files - Pkg.has_prefix.keys() - Pkg.no_link
     for f in expected_linked:
         src = join(Pkg.path, f)
         tgt = join(env.path, f)
@@ -74,13 +73,13 @@ def explicitly_installed(env):
 
     # See what packages were actually installed
     actually_installed = {date: set(pkg_spec) for date, pkg_spec in hist.construct_states}
-    for date, specs in ditems(installed_specs):
+    for date, specs in installed_specs.items():
         # Translate name only spec to full specs
         name_spec = {x for x in actually_installed[date] if x.split('-')[0] in specs}
         actually_installed[date] = name_spec
 
     # Intersect with currently installed packages
-    actually_installed = {date: specs.intersection(current_pkgs) for date, specs in ditems(actually_installed)}
+    actually_installed = {date: specs.intersection(current_pkgs) for date, specs in actually_installed.items()}
     return actually_installed
 
 def orphaned(env):
@@ -95,6 +94,3 @@ def orphaned(env):
     current_pkgs = set(env.packages)
     depended_on = set().union(pkg.depends for pkg in current_pkgs)
     return current_pkgs.difference(depended_on)
-
-
-
