@@ -79,7 +79,7 @@ class PackageArchive(object):
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
 
-    def close(self):
+    def close(self) -> None:
         """
         Close an open archive and clean up possible temporary file.
         """

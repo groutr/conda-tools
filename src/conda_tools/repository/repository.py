@@ -1,19 +1,18 @@
-from __future__ import print_function
-
 import bz2
 from json import loads
 from os.path import join
 from urllib.request import urlopen
 
+from typing import Generator, Sequence
 
-class RepoPackage(object):
+class RepoPackage:
     PACKAGE_FIELDS = (
     'build', 'build_number', 'date', 'depends', 'requires',
     'license', 'license_family', 'md5', 'size', 'version', 'name', 'sha256'
     )
     __slots__ = ('filename',) + PACKAGE_FIELDS
 
-    def __init__(self, filename, info):
+    def __init__(self, filename:str, info:dict):
         self.filename = filename
 
         for field in self.PACKAGE_FIELDS:
@@ -25,6 +24,7 @@ class RepoPackage(object):
     def __eq__(self, other):
         if self.__class__ == other.__class__:
             return self.sha256 == other.sha256
+        return NotImplemented
 
     def __repr__(self):
         return 'RepoPackage({})'.format(self.filename)
@@ -33,11 +33,11 @@ class RepoPackage(object):
         return '{} {} {}'.format(self.name, self.version, self.build)
 
 
-def repo_packages(d):
+def repo_packages(d:dict) -> set:
     return set(RepoPackage(*info) for info in d.items())
 
-class Repository(object):
-    def __init__(self, url, data):
+class Repository:
+    def __init__(self, url:str, data:dict):
         self.url = url
         self.info = data['info']
         self.packages = data['packages']
@@ -46,18 +46,18 @@ class Repository(object):
         return 'Repository({})'.format(self.url)
 
     def __eq__(self, other):
-        try:
-            return (self.url == other.url) and (self.packages == other.packages)
-        except:
-            return False
+        if self.__class__ is other.__class__:
+            return self.url == other.url and self.packages == other.packages
+        return NotImplemented
 
-    def fetch_urls(self, pkgs):
+    def fetch_urls(self, pkgs:Sequence) -> Generator:
         base_url = self.url
         for p in pkgs:
             if p in self.packages:
                 yield join(base_url, p.filename), p.sha256
 
-def get_repo(url, platform=None):
+
+def get_repo(url:str, platform:str=None) -> Repository:
     if platform is not None:
         ch_url = join(url, platform)
     else:

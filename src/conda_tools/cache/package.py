@@ -2,7 +2,9 @@ from os.path import join, exists, isdir
 import json
 from functools import lru_cache
 import pathlib
+import typing
 from sys import intern
+
 
 from . import lazyproperty
 from . import _types
@@ -91,7 +93,7 @@ class Package:
         return prefixed
 
     @lazyproperty
-    def paths(self):
+    def paths(self) -> typing.Mapping:
         """
         Return contents of info/paths.json
         """
@@ -102,7 +104,7 @@ class Package:
             return {}
 
     @lazyproperty
-    def no_link(self):
+    def no_link(self) -> typing.AbstractSet:
         """
         Return contents of no_link
         """
@@ -121,7 +123,7 @@ class Package:
             return json.load(f)
 
     @lazyproperty
-    def files(self):
+    def files(self) -> typing.AbstractSet:
         """
         Provide access to `info/files`.  A frozenset of files is returned.
         """
@@ -129,13 +131,13 @@ class Package:
             return frozenset(x.strip() for x in f)
 
     @lazyproperty
-    def full_spec(self):
+    def full_spec(self) -> str:
         """
         Return full spec of package.
         """
         return '{}-{}-{}'.format(self.name, self.version, self.build)
 
-    def __iter__(self):
+    def __iter__(self) -> typing.Iterator:
         """
         Return iterator over files in package
         """
@@ -146,16 +148,16 @@ class Package:
             return self.path < other.path
         return NotImplemented
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         if other.__class__ is self.__class__:
             return self.path == other.path
         return NotImplemented
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.path)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return 'PackageInfo({}) @ {}'.format(self.path, hex(id(self)))
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.full_spec
