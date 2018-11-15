@@ -1,8 +1,12 @@
-class InvalidCachePackage(Exception):
+
+class CacheException(Exception):
+    pass
+
+class InvalidCachePackage(CacheException):
     pass
 
 
-class BadLinkError(Exception):
+class BadLinkError(CacheException):
     """
     Error raised when a symbolic link is bad.
 
@@ -11,5 +15,5 @@ class BadLinkError(Exception):
     pass
 
 
-class BadPathError(Exception):
+class BadPathError(CacheException):
     pass

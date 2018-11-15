@@ -13,9 +13,7 @@ from .history import History
 from ..constants import cast_link_type, LINK_TYPE
 from ..foreign import groupby
 
-class InvalidEnvironment(Exception):
-    pass
-
+from .exceptions import InvalidEnvironment
 
 class DictionaryPool(object):
     """
