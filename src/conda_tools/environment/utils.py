@@ -7,24 +7,24 @@ from os.path import join
 
 from .environment import Environment, environments
 from ..cache.package import Package
-from .utils import is_hardlinked
+from ..utils import is_hardlinked
 from ..constants import LINK_TYPE
 
 
-def hard_linked(env):
+def hard_linked(env:Environment) -> dict:
     """
     Return dictionary of all packages (as PackageInfo instances) that are hard-linked into *env*
     """
     return {p.name: p for p in env._link_type_packages(link_type=LINK_TYPE.hardlink)}
 
-def check_hardlinked_env(env):
+def check_hardlinked_env(env:Environment) -> dict:
     """
     Check all hardlinked packages in env
     """
     return {k: check_hardlinked_pkg(env, v) for k, v in hard_linked(env).items()}
 
 
-def owns(env, path):
+def owns(env:Environment, path) -> tuple:
     """
     Return the package in env that owns file.
 
@@ -35,7 +35,7 @@ def owns(env, path):
     return tuple(p for p in env.packages if path in p.files)
 
 
-def check_hardlinked_pkg(env, Pkg):
+def check_hardlinked_pkg(env:Environment, Pkg:Package) -> list:
     """
     Check that pkg in cache is correctly (or completely) hardlinked into env.
 
@@ -54,7 +54,7 @@ def check_hardlinked_pkg(env, Pkg):
     return bad_linked
 
 
-def explicitly_installed(env):
+def explicitly_installed(env:Environment) -> dict:
     """
     Return list of explicitly installed packages.
     Note that this does not work with root environments
@@ -82,7 +82,7 @@ def explicitly_installed(env):
     actually_installed = {date: specs.intersection(current_pkgs) for date, specs in actually_installed.items()}
     return actually_installed
 
-def orphaned(env):
+def orphaned(env:Environment) -> set:
     """
     Return a list of orphaned packages in the env.
 
@@ -94,3 +94,25 @@ def orphaned(env):
     current_pkgs = set(env.packages)
     depended_on = set().union(pkg.depends for pkg in current_pkgs)
     return current_pkgs.difference(depended_on)
+
+
+def dependency_graph(env:Environment) -> dict:
+    """
+    Return a dictionary that represents the dependency graph of the environment.
+    Only package names are considered because a package cannot have
+    multiple versions of the same package installed.
+    
+    The output of this function can be passed to NetworkX constructors
+    Args:
+        env (Environment):
+
+    Returns:
+        (dict)
+    """
+    graph = {}
+
+    for pkg in env.packages:
+        graph[pkg.name] = deps = []
+        for depended_on in pkg.depends:
+            deps.append(depended_on.split()[0])
+    return graph
