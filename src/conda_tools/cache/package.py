@@ -75,7 +75,7 @@ class Package:
         binary_prefix = None
         text_prefix = None
 
-        with open(self._info/'has_prefix', 'r') as f:
+        with (self._info/'has_prefix').open(mode='r') as f:
             for pf in f:
                 prefix, ftype, fname = pf.split()
                 if ftype == 'binary':
@@ -98,7 +98,7 @@ class Package:
         Return contents of info/paths.json
         """
         try:
-            with open(self._info/'paths.json', 'r') as f:
+            with (self._info/'paths.json').open(mode='r') as f:
                 return json.load(f)
         except FileNotFoundError:
             return {}
@@ -109,7 +109,7 @@ class Package:
         Return contents of no_link
         """
         try:
-            with open(self._info/'no_link', 'r') as f:
+            with (self._info/'no_link').open(mode='r') as f:
                 return frozenset(x.strip() for x in f)
         except FileNotFoundError:
             return frozenset()
@@ -119,7 +119,7 @@ class Package:
         """
         Provide access to `info/index.json`.
         """
-        with open(self._index, 'r') as f:
+        with self._index.open(mode='r') as f:
             return json.load(f)
 
     @lazyproperty
@@ -127,7 +127,7 @@ class Package:
         """
         Provide access to `info/files`.  A frozenset of files is returned.
         """
-        with open(self._info/'files', 'r') as f:
+        with (self._info/'files').open(mode='r') as f:
             return frozenset(x.strip() for x in f)
 
     @lazyproperty
