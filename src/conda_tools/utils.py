@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import stat
+import io
 import platform
 from collections import defaultdict
 from os.path import exists, join
@@ -33,7 +34,7 @@ def is_executable(mode):
     """
     if isinstance(mode, str) and mode.startswith('0o'):
         mode = int(mode, 8)
-    
+
     ux, gx, ox = stat.S_IXUSR, stat.S_IXGRP, stat.S_IXOTH
 
     return ((mode & ux) or (mode & gx) or (mode & ox)) > 0
@@ -44,7 +45,7 @@ def is_macho(file):
     """
     magic = _get_magic(file, 4)
     if (magic == b'\xcf\xfa\xed\xfe' or magic == b'\xfe\xed\xfa\xcf' or
-        magic == b'\xce\xfa\xed\xfe' or magic == b'\xfe\xed\xfa\xce'): 
+        magic == b'\xce\xfa\xed\xfe' or magic == b'\xfe\xed\xfa\xce'):
         return True
     return False
 
@@ -85,7 +86,7 @@ def _get_magic(file, length):
         if file.readable():
             if platform.system() == 'Windows' and 'b' not in file.mode:
                 raise IOError("File object must be opened in binary mode")
-            
+
             if file.seekable():
                 old_pos = file.tell()
                 file.seek(0)
@@ -106,7 +107,29 @@ def _get_magic(file, length):
 
         # Raise exception as last resort
         raise
-        
 
+def block_iter(fileobj, blocksize=io.DEFAULT_BUFFER_SIZE):
+    """Iterate over fileobj and yield blocks up to size of blocksize.
 
-    
+    Arguments:
+        fileobj {[type]} -- Any object supporting .read() method.
+
+    Notes:
+        Iteration will attempt to find EOF position and iterate till EOF.
+        Otherwise, iteration will terminate on the first empty string.
+    """
+    if fileobj.seekable():
+        # Discover the end of the file
+        pos = fileobj.tell()
+        final_size = fileobj.seek(0, io.SEEK_END)
+        fileobj.seek(pos)
+
+        while fileobj.tell() < final_size:
+            yield fileobj.read(blocksize)
+    else:
+        while True:
+            blk = fileobj.read(blocksize)
+            if blk:
+                yield blk
+            else:
+                break
