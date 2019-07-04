@@ -3,6 +3,7 @@ from __future__ import print_function
 import os
 import json
 import pprint
+import pathlib
 from functools import lru_cache, reduce
 from operator import itemgetter
 from os.path import join, isdir, basename, dirname
@@ -47,6 +48,31 @@ class DictionaryPool(object):
 
 Pool = DictionaryPool(intern_keys=True)
 
+class PackageProxy:
+    def __init__(self, path, info=None):
+        self.path = path
+
+        if info is None:
+            self.info = _load_json(path)
+        else:
+            self.info = info
+
+    def _triplet(self):
+        name = self.info['name']
+        version = self.info['version']
+        build = self.info['build']
+        return '{}-{}-{}'.format(name, version, build)
+
+    def to_package(self):
+        return Package(self.info['link']['source'])
+
+    def __repr__(self):
+        return 'PackageProxy::{}'.format(self._triplet())
+
+    def __str__(self):
+        return self._triplet()
+
+
 class Environment(object):
     def __init__(self, path):
         """
@@ -89,17 +115,6 @@ class Environment(object):
         self._read_package_json()
         return groupby(key, self._packages.values())
 
-    @lazyproperty
-    def linked_packages(self):
-        """
-        List all packages linked into the environment.
-        """
-        package_info = {}
-        for pi in self._link_type_packages(link_type='all').values():
-            for p in pi:
-                package_info[p.name] = p
-        return package_info
-
     def get_field(self, field):
         self._read_package_json()
         return {i['name']: i.get(field) for i in self._packages.values()}
@@ -129,19 +144,19 @@ class Environment(object):
 
     @property
     def hard_linked(self):
-        return self._link_type_packages(LINK_TYPE.hardlink)
+        return tuple(_filter_json_by_type(self._meta, link_type=LINK_TYPE.hardlink))
 
     @property
     def soft_linked(self):
-        return self._link_type_packages(LINK_TYPE.softlink)
+        return tuple(_filter_json_by_type(self._meta, link_type=LINK_TYPE.softlink))
 
     @property
     def copy_linked(self):
-        return self._link_type_packages(LINK_TYPE.copy)
+        return tuple(_filter_json_by_type(self._meta, link_type=LINK_TYPE.copy))
 
     @property
     def packages(self):
-        return tuple(reduce(tuple.__add__, self._link_type_packages('all').values()))
+        return tuple(_filter_json_by_type(self._meta, link_type=None))
 
     @lru_cache(maxsize=4)
     def _link_type_packages(self, link_type='all'):
@@ -204,7 +219,6 @@ def update_values(d):
 
     There should be a more elegant solution.  This is pretty hacked.
     """
-
     #update link/type values
     try:
         val = d['link']['type']
@@ -219,17 +233,26 @@ def _load_all_json(path):
     """
     Load all json files in a directory.  Return dictionary with filenames mapped to json dictionaries.
     """
-    root, _, files = next(os.walk(path))
     result = {}
-    for f in files:
-        if f.endswith('.json'):
-            result[f] = update_values(_load_json(join(root, f)))
+    for f in pathlib.Path(path).glob('*.json'):
+        result[f] = update_values(_load_json(str(f)))
     return result
 
 def _load_json(path):
     with open(path, 'r') as fin:
         x = Pool.register(json.load(fin))
     return x
+
+def _filter_json_by_type(path, link_type=LINK_TYPE.hardlink):
+    for _json in pathlib.Path(path).glob('*.json'):
+        meta = update_values(_load_json(_json))
+
+        if link_type is None:
+            yield PackageProxy(_json, info=meta)
+        else:
+            if LINK_TYPE(meta['link']['type']) == link_type:
+                yield PackageProxy(_json, info=meta)
+
 
 def is_conda_env(path):
     return isdir(path) and isdir(join(path, 'conda-meta'))
