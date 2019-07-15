@@ -36,6 +36,7 @@ class PackagePool(object):
 
 Pool = PackagePool()
 
+
 class Package:
     def __init__(self, path: _types.PATH):
         """
@@ -75,19 +76,22 @@ class Package:
         binary_prefix = None
         text_prefix = None
 
-        with (self._info/'has_prefix').open(mode='r') as f:
-            for pf in f:
-                prefix, ftype, fname = pf.split()
-                if ftype == 'binary':
-                    binary_prefix = prefix
-                elif ftype == 'text':
-                    text_prefix = prefix
-                prefixed[fname] = ftype
+        try:
+            with (self._info/'has_prefix').open(mode='r') as f:
+                for pf in f:
+                    prefix, ftype, fname = pf.split()
+                    if ftype == 'binary':
+                        binary_prefix = prefix
+                    elif ftype == 'text':
+                        text_prefix = prefix
+                    prefixed[fname] = ftype
+            if binary_prefix:
+                binary_prefix = intern(binary_prefix)
+            if text_prefix:
+                text_prefix = intern(text_prefix)
+        except FileNotFoundError:
+            pass
 
-        if binary_prefix:
-            binary_prefix = intern(binary_prefix)
-        if text_prefix:
-            text_prefix = intern(text_prefix)
         self.binary_prefix = binary_prefix
         self.text_prefix = text_prefix
         return prefixed
