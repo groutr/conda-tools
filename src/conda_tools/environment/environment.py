@@ -57,6 +57,14 @@ class PackageProxy:
         else:
             self.info = info
 
+    def __hash__(self):
+        return hash(self.path)
+
+    def __eq__(self, other):
+        if other.__class__ is self.__class__:
+            return self.path == other.path
+        return NotImplemented
+
     def _triplet(self):
         name = self.info['name']
         version = self.info['version']
@@ -71,6 +79,10 @@ class PackageProxy:
 
     def __str__(self):
         return self._triplet()
+
+    @lru_cache(maxsize=16)
+    def __getattr__(self, name):
+        return self.info[name]
 
 
 class Environment(object):
