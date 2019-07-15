@@ -82,11 +82,10 @@ def orphaned(env:Environment) -> set:
     Since we don't have a full dependency solver, this method naively only
     considers package names (and ignores versions and version constraints).
     """
-    current_pkgs = set(p.name for p in env.packages)
     depended_on = set()
-    for pkg in current_pkgs:
+    for pkg in env.packages:
         depended_on.update(d.split(maxsplit=1)[0] for d in pkg.depends)
-    return current_pkgs.difference(depended_on)
+    return set(p for p in env.packages if p.name not in depended_on)
 
 
 def dependency_graph(env:Environment) -> dict:
@@ -107,5 +106,5 @@ def dependency_graph(env:Environment) -> dict:
     for pkg in env.packages:
         graph[pkg.name] = deps = []
         for depended_on in pkg.depends:
-            deps.append(depended_on.split()[0])
+            deps.append(depended_on.split(maxsplit=1)[0])
     return graph
